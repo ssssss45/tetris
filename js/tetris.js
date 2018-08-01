@@ -325,6 +325,7 @@ var score;
 			figure_current.location.x++;
 			draw(glassObject);
 			if ((instantFall)&&(figure_current.location.x<GLASS_HIGHT_BRICKS)){fall();}
+			checkFilledRows();
 		}
 
 	function gameOver(flag)
@@ -400,6 +401,40 @@ var score;
 			case "right": rightActive=false; break;
 			case "down": downActive=false; break;
 			case "space": instantFall=false; break;
+		}
+	}
+
+//проверка заполненности рядов
+	function checkFilledRows()
+	{
+		var rowFlag;
+		for (var i=GLASS_HIGHT_BRICKS; i>0;i--)
+		{
+			rowFlag = true;
+			for (var j=GLASS_WIDTH_BRICKS; j>0;j--)	
+			{
+				if (glassStateArray[i][j]=="0")
+				{
+					rowFlag=false;
+				}
+			}
+			if (rowFlag)
+			{
+				dragDown(i);
+				score++;
+				i++;
+			}
+		}
+		function dragDown(row)
+		{
+			for (var i=row; i>0;i--)
+			{
+				for (var j=GLASS_WIDTH_BRICKS; j>=0;j--)	
+				{
+					glassStateArray[i][j]=glassStateArray[i-1][j];
+					
+				}
+			}
 		}
 	}
 
