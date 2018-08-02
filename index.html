@@ -2,16 +2,27 @@
 <html>
 <head>
 	<title></title>
-	<script type="text/javascript"></script>
 	<script src="js/keyboard-controller.js"></script>
 	<script src="js/tetris.js"></script>
+
 </head>
 <body>
+	
+	
 	<button type="button" id="newTetrisGameButton" onclick="generateGameStartEvent()">Новая игра</button>
+	
 	<button type="button" id="pauseTetrisGameButton" onclick="generateGamePauseEvent()">Пауза</button>
+	
 	<div style="position: relative">
 		<canvas style="position: absolute;" id="tetrisGlass" width="360" height="600"></canvas>
 		<canvas style="position: absolute;" id="tetrisGlassNet" width="360" height="600"></canvas>
 	</div>
+
+	<script>
+		window.addEventListener('load', function(){
+			var tetris = new Tetris({});
+		});
+	</script>
+	<script src="js/main.js"></script>
 </body>
 </html>

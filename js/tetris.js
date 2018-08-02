@@ -26,9 +26,10 @@ function tetris(){
 //объект текущей фигуры
 	var figure_current={};
 //таймер то опускания фигуры
-var fall_countdown;
+	var fall_countdown;
 //количество очков
-var score;
+	var score;
+	var figureObjectArray=[];
 //Состояние паузы
 	var is_paused=false;
 	var keycon= new keyboardController();
@@ -49,60 +50,58 @@ var score;
 		};
 		keycon.bindActions(key);
 	}
+	initialisation();
+function initialisation()
+	{
 //Создание массива фигур
 	var figures=["1,1,0;0,1,1","0,1,1;1,1,0","1,1;1,1","1,0,0;1,1,1","0,0,1;1,1,1","0,1,0;1,1,1","1,1,1,1"];
 	//var figures=["1,1;1,1"];
-	var figureObjectArray=[];
+	figureObjectArray=[];
 	for (var i = 0, len = figures.length; i < len; i++)
 	{
 		var figure={};
 		figure.states=[];
 
 //создание и инициализация массивов состояний
-		var state1=[[],[]];
-		var state2=[[],[]];
-		var state3=[[],[]];
-		var state4=[[],[]];		
-
-		var tempFigureArray=figures[i].split(";");
-		var tempLineArrayToGetLength=tempFigureArray[0].split(",")
-		var size=Math.max(tempFigureArray.length,tempLineArrayToGetLength.length);
-
-		state1=initialiseState(state1,size);
-		state2=initialiseState(state2,size);
-		state3=initialiseState(state3,size);
-		state4=initialiseState(state4,size);
-
-		function initialiseState(state,size)
-		{
-			for (var i1=0; i1<size;i1++){
-				state[i1]=[];
-			}
-			return(state);
-		}
-
+			var tempFigureArray=figures[i].split(";");
+			var tempLineArrayToGetLength=tempFigureArray[0].split(",")
+			var size=Math.max(tempFigureArray.length,tempLineArrayToGetLength.length);
 //заполнение состояний
-		for (var j = 0, len1 = tempFigureArray.length; j < len1; j++)
-		{
-			var tempLineArray=tempFigureArray[j].split(",");
-			for (var k = 0, len2 = tempLineArray.length; k < len2; k++){
-				state1[j][k]=tempLineArray[k];
-				state2[k][len1-j-1]=tempLineArray[k];
-				state3[len1-j-1][len2-k-1]=tempLineArray[k];
-				state4[len2-k-1][j]=tempLineArray[k];
+			fillState(1);
+			fillState(2);
+			fillState(3);
+			fillState(4);
+//функция заполнения состояний
+			function fillState(stateNo)
+			{
+				var state=[[],[]];	
+
+				for (var i1=0; i1<size;i1++){
+					state[i1]=[];
+				}
+
+				for (var j = 0, len1 = tempFigureArray.length; j < len1; j++)
+				{
+					var tempLineArray=tempFigureArray[j].split(",");
+					for (var k = 0, len2 = tempLineArray.length; k < len2; k++){
+						switch (stateNo)
+							{
+								case 1: state[j][k]=tempLineArray[k]; break;
+								case 2: state[k][len1-j-1]=tempLineArray[k]; break;
+								case 3: state[len1-j-1][len2-k-1]=tempLineArray[k];  break;
+								case 4: state[len2-k-1][j]=tempLineArray[k];  break;
+							}
+					}
+				}
+				state=state.filter(v=>v!='');	
+				state.rotationCoordX=Math.floor((state[0].length-1)/2);
+				state.rotationCoordY=Math.floor((state[0][0].length-1)/2);
+				figure.states.push(state);
 			}
+//добавление новых фигур в массив фигур
+			figureObjectArray.push(figure);
 		}
-//Удаление пустых строк из состояний
-		state1=state1.filter(v=>v!='');
-		state2=state2.filter(v=>v!='');
-		state3=state3.filter(v=>v!='');
-		state4=state4.filter(v=>v!='');
-//добавление состояний к объекту фигуры и добавление фигуры в массив
-		figure.states.push(state1);
-		figure.states.push(state2);
-		figure.states.push(state3);
-		figure.states.push(state4);
-		figureObjectArray.push(figure);
+		console.log(figureObjectArray);
 	}
 //слушатель на событие начала игры
 	document.addEventListener("tetrisGameStartEvent",function(e) {
@@ -129,27 +128,44 @@ var score;
 //начало игры
 	function gamestart(glassObject)
 	{
-		score=0;
-		is_paused=false;
 		if (state=="playing")
 		{
-			gameOver(true);
+			document.removeEventListener("tetrisGameStartEvent",function(e) {
+			gamestart(e.detail.glassObject);
+				});
+			state="inactive";
+			setTimeout(reset,45);
 		}
-		fall_delta=700;
-		fall_countdown=0
-		state="playing";
-		glassObject=document.getElementById(glassObjectName);
+		else
+		{
+			score=0;
+			is_paused=false;
+			fall_delta=700;
+			fall_countdown=0
+			state="playing";
+			figureNeeded=true;
+			glassObject=document.getElementById(glassObjectName);
 //Слушатели на нажатие и отжатие клавиш		
-		glassObject.addEventListener("controls:activate",function(e) {
-			activateListenerActions(e.detail.action);
-		});
-		glassObject.addEventListener("controls:deactivate",function(e) {
-			deactivateListenerActions(e.detail.action);
-		});
-//инициализация массива стакана
-		initialiseGlassArray(GLASS_HIGHT_BRICKS,GLASS_WIDTH_BRICKS);
-
-		setTimeout(gamestep,40);
+			glassObject.addEventListener("controls:activate",function(e) {
+				activateListenerActions(e.detail.action);
+			});
+			glassObject.addEventListener("controls:deactivate",function(e) {
+				deactivateListenerActions(e.detail.action);
+			});
+//инициализация массива стакана и перерисовка
+			initialiseGlassArray(GLASS_HIGHT_BRICKS,GLASS_WIDTH_BRICKS);
+			draw(glassObject);
+			setTimeout(gamestep,40);
+		}
+//функция обрабатывающая нажатие кнопки "новая игра" во время игры	
+		function reset()
+		{
+			document.addEventListener("tetrisGameStartEvent",function(e) {
+			gamestart(e.detail.glassObject);
+				});
+			gameOver(false);
+			gamestart();
+		}
 	}
 //шаг игры
 	function gamestep()
@@ -163,11 +179,9 @@ var score;
 		}
 		if(leftActive){moveLeft();}
 		if(rightActive){moveRight();}
+		if(rotate){rotateFigure();}
 		if ((state=="playing")&&(!is_paused)){setTimeout(gamestep,40);}
-
-
 	}
-
 
 //Генерация фигуры
 	function createFigure()
@@ -184,13 +198,56 @@ var score;
 			for (var j = 0; j < figure_current.figure.states[0][0].length;j++)
 				{
 					glassObject=document.getElementById(glassObjectName);
-					if (glassStateArray[i][j+figure_current.location.y]==2){generateGameOverEvent()}
+					if (glassStateArray[i][j+figure_current.location.y]=="2"){
+								generateGameOverEvent(false);
+							}
 					glassStateArray[i][j+figure_current.location.y]=figure_current.figure.states[0][i][j];
 				}
 		}
 	}
+//поворот фигуры
+	function rotateFigure()
+	{
+		var gotostate = figure_current.state + 1;
+		if (gotostate == 4){gotostate = 0};
+		var rotationPossible=true;
+		console.log("!!!");
+//проверка возможности поворота
+		for (var i=figure_current.location.x; i<=figure_current.location.x+figure_current.figure.states[gotostate].length; i++)
+		{
+			for (var j=figure_current.location.y; j<=figure_current.location.y+figure_current.figure.states[gotostate][0].length; j++)
+			{
+				if (glassStateArray[i][j]=="2")
+				{
+					rotationPossible=false;
+					console.log("failed to rotate");
+				}
+			}
+		}
 
-	//Функция движения влево
+		if (rotationPossible)
+		{
+			for (var i=figure_current.location.x; i<=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i++)
+				{
+					for (var j=figure_current.location.y; j<=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j++)
+					{
+						if (glassStateArray[i][j]=="1"){glassStateArray[i][j]="0";}
+					}
+				}
+			figure_current.state=gotostate;
+			for (var i=figure_current.location.x; i<figure_current.location.x+figure_current.figure.states[figure_current.state].length; i++)
+				{
+					for (var j=figure_current.location.y; j<figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j++)
+					{
+						console.log(figure_current.figure.states[figure_current.state][i-figure_current.location.x]);
+						if (figure_current.figure.states[figure_current.state][i-figure_current.location.x][j-figure_current.location.y]=="1"){glassStateArray[i][j]="1";}
+					}
+				}	
+		}
+
+	}
+
+//Функция движения влево
 		function moveLeft()
 		{
 			var isMovePossible=true;
@@ -320,12 +377,12 @@ var score;
 							}
 						}	
 				}
-
+//проверка на заполненные ряды
+			checkFilledRows();
 			}
 			figure_current.location.x++;
 			draw(glassObject);
 			if ((instantFall)&&(figure_current.location.x<GLASS_HIGHT_BRICKS)){fall();}
-			checkFilledRows();
 		}
 
 	function gameOver(flag)
@@ -338,7 +395,7 @@ var score;
 			deactivateListenerActions(e.detail.action);
 		});
 		console.log("Worked");
-		if (!flag)
+		if (flag)
 		{
 			var ctx =glassObject.getContext('2d');
 			ctx.clearRect(0, 0, glassObject.width, glassObject.height);
@@ -370,10 +427,10 @@ var score;
 	}
 //Функция инициализации массива стакана
 	function initialiseGlassArray(x,y){
-		for (var i = 0; i < x+3 ; i++)
+		for (var i = -1; i < x+3 ; i++)
 		{
 			glassStateArray[i]=[];
-			for (var j = 0; j < y ; j++)
+			for (var j = -1; j < y ; j++)
 			{
 				glassStateArray[i][j]="0";
 			}
@@ -389,6 +446,7 @@ var score;
 			case "right": rightActive=true; break;
 			case "down": downActive=true; break;
 			case "space": instantFall=true; fall(); break;
+			case "up": rotate=true; break;
 		}
 	}
 
@@ -401,6 +459,7 @@ var score;
 			case "right": rightActive=false; break;
 			case "down": downActive=false; break;
 			case "space": instantFall=false; break;
+			case "up": rotate=false; break;
 		}
 	}
 
@@ -421,13 +480,15 @@ var score;
 			if (rowFlag)
 			{
 				dragDown(i);
+				fall_delta=fall_delta-25;
 				score++;
 				i++;
 			}
 		}
+//Опускание содержимого стакана
 		function dragDown(row)
 		{
-			for (var i=row; i>0;i--)
+			for (var i=row; i>=0;i--)
 			{
 				for (var j=GLASS_WIDTH_BRICKS; j>=0;j--)	
 				{
