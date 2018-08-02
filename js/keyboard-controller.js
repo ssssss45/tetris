@@ -18,6 +18,8 @@ class keyboardController
 
 		this.currentTouchX;
 		this.currentTouchY;
+
+		this.targetIsString=false;
 	}
 
 //Добавляет в контроллер переданные активности
@@ -80,7 +82,7 @@ class keyboardController
 		var keyCode=action.keyCode;
 		this.pressedKeys[keyCode]=true;
 		if ((this.enabled)&&(this.keys[keyCode]!=undefined)){
-			var elem=document.querySelector("#"+this.target);
+			var elem=this.getElement();
 			for (var i = 0, len = this.keys[keyCode].length; i < len; i++)
 			{
 				var _action = this.getActionByName( this.keys[keyCode][i] );
@@ -91,7 +93,7 @@ class keyboardController
 								action: this.keys[keyCode][i]
 							}
 							});
-					var elem=document.querySelector("#"+this.target);
+					var elem=this.getElement();
 					elem.dispatchEvent(activationEvent);
 				}
 			}	
@@ -103,7 +105,7 @@ class keyboardController
 		var keyCode=action.keyCode;
 		this.pressedKeys[keyCode]=false;
 		if ((this.enabled)&&(this.keys[keyCode]!=undefined)){
-			var elem=document.querySelector("#"+this.target);
+			var elem=this.getElement();
 			for (var i = 0, len = this.keys[keyCode].length; i < len; i++)
 			{
 				var _action = this.getActionByName( this.keys[keyCode][i] );
@@ -114,7 +116,7 @@ class keyboardController
 								action: this.keys[keyCode][i]
 							}
 							});
-					var elem=document.querySelector("#"+this.target);
+					var elem=this.getElement();
 					elem.dispatchEvent(deactivationEvent);
 				}
 			}	
@@ -160,7 +162,7 @@ class keyboardController
 								action: this.touchActions[i].name
 							}
 					});
-				var elem=document.querySelector("#"+this.target);
+				var elem = this.getElement();
 				elem.dispatchEvent(swipeEvent);
 			}
 		}
@@ -168,8 +170,17 @@ class keyboardController
 
 //Нацеливает контроллер на переданный DOM-елемент (вешает слушатели).
 	attach(target){
-		this.target=target;
-		var elem=document.querySelector("#"+target);
+		if (typeof target== 'string') 
+		{
+			this.target=target;
+			var elem=document.querySelector("#"+target);
+			thisTargetIsString = true;
+		}
+		else
+		{
+			this.target=target;
+			var elem=target;
+		}
 		elem.classList.add("keyboardController");
     	document.addEventListener("keydown", this.boundCreateControlsActivateEvent, false);
 		document.addEventListener("keyup", this.boundCreateControlsDeactivateEvent, false);
@@ -181,7 +192,7 @@ class keyboardController
 
 //Отцепляет контроллер от активного DOM-елемента и деактивирует контроллер.
 	detach(){
-		var elem=document.querySelector("#"+this.target);
+		var elem = this.getElement();
 		elem.classList.remove("keyboardController");
 		document.removeEventListener("keydown", this.boundCreateControlsActivateEvent);
 		document.removeEventListener("keyup", this.boundCreateControlsDeactivateEvent);
@@ -209,4 +220,17 @@ class keyboardController
 			}
 		return result;
 	}
+
+	getElement()
+	{
+	if(this.targetIsString)
+		{
+			return document.querySelector("#"+this.target);
+		}
+		else
+		{
+			return this.target;
+		}	
+	}
+
 }

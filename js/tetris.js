@@ -6,25 +6,32 @@ function tetris(){
 	const GLASS_HIGHT_BRICKS=20;
 	const GLASS_WIDTH_BRICKS=10;
 //Размеры "кирпичей"
-	var brickHeight=Math.floor(GLASS_HIGHT/GLASS_HIGHT_BRICKS);
+	var brickHight=Math.floor(GLASS_HIGHT/GLASS_HIGHT_BRICKS);
 	var brickWidth=Math.floor(GLASS_WIDTH/GLASS_WIDTH_BRICKS);
+
+console.log(brickHight);
+var renderer=new CanvasRenderer(
+	{
+		'GLASS_WIDTH': GLASS_WIDTH,
+		'GLASS_HIGHT': GLASS_HIGHT,
+		'GLASS_HIGHT_BRICKS': GLASS_HIGHT_BRICKS,
+		'GLASS_WIDTH_BRICKS': GLASS_WIDTH_BRICKS,
+		'brickWidth': brickWidth,
+		'brickhight': brickHight,
+		'containers' : 'tetrisGame'
+	})
+
 //Массив Стакана
 	var glassStateArray=[[],[]];
 //Флаг того что нужна новая фигура
 	var figureNeeded=true;
-//ID объекта стакана
-	var glassObjectName="tetrisGlass";
-	var glassObject=document.getElementById(glassObjectName);
-//ID объекта сетки стакана (канвас над канвасом стакана)
- 	var netObjectName="tetrisGlassNet"
-//отрисовка сетки над стаканом
-	drawNet(netObjectName);
 //Задержка между авто-смещением фигуры вниз
 	var fall_delta;
 //Текущее состояние игры
 	var state="inactive";
 //объект текущей фигуры
-	var figure_current={};
+	var current_figure={};
+	current_figure.location={};
 //таймер то опускания фигуры
 	var fall_countdown;
 //количество очков
@@ -33,7 +40,9 @@ function tetris(){
 //Состояние паузы
 	var is_paused=false;
 	var keycon= new keyboardController();
-	keycon.attach("tetrisGlass");
+	var glassObject=renderer.getField();
+	console.log(glassObject);
+	keycon.attach(glassObject);
 //Добавление кнопок в контроллер
 	addKeyToController("left",[37]);
 	addKeyToController("right",[39]);
@@ -115,9 +124,6 @@ function initialisation()
 	document.addEventListener("tetrisGamePauseEvent",function(e) {
 	setPaused(is_paused);
 		});
-//очистка стакана
-	var ctx =glassObject.getContext('2d');
-	ctx.clearRect(0, 0, glassObject.width, glassObject.height);
 //логические переменные для работы с контроллером
 	var leftActive=false;
 	var rightActive=false;
@@ -144,8 +150,8 @@ function initialisation()
 			fall_countdown=0
 			state="playing";
 			figureNeeded=true;
-			glassObject=document.getElementById(glassObjectName);
 //Слушатели на нажатие и отжатие клавиш		
+			glassObject=renderer.getField();
 			glassObject.addEventListener("controls:activate",function(e) {
 				activateListenerActions(e.detail.action);
 			});
@@ -154,7 +160,7 @@ function initialisation()
 			});
 //инициализация массива стакана и перерисовка
 			initialiseGlassArray(GLASS_HIGHT_BRICKS,GLASS_WIDTH_BRICKS);
-			draw(glassObject);
+			renderer.draw(glassStateArray);
 			setTimeout(gamestep,40);
 		}
 //функция обрабатывающая нажатие кнопки "новая игра" во время игры	
@@ -171,7 +177,7 @@ function initialisation()
 	function gamestep()
 	{	
 		if(figureNeeded){createFigure();}
-		draw(glassObject);
+		renderer.draw(glassStateArray);
 		fall_countdown=fall_countdown+40;
 		if ((fall_countdown>=fall_delta)||((fall_countdown>=(fall_delta/2))&&(downActive)))
 		{
@@ -183,39 +189,62 @@ function initialisation()
 		if ((state=="playing")&&(!is_paused)){setTimeout(gamestep,40);}
 	}
 
+//проверка возможности постановки фигуры
+	function testFigurePlace(dx, dy, figure_state){
+		figure_state = figure_state || current_figure.current_state;
+		var figureLength=figure_state[0].length;
+		console.log(figureLength);
+		var figureHight=figure_state.length-1;
+		for (var x = 0; x < figure_state.length;x++)
+		{
+			for (var y = 0; y < figure_state.length; y++)
+			{
+				console.log(Number(figure_state[x][y]) + Number(glassStateArray[dx+x+current_figure.location.x][dy+y+current_figure.location.y]) > 2 );
+
+				if ( Number(figure_state[x][y]) + Number(glassStateArray[dx+x+current_figure.location.x][dy+y+current_figure.location.y]) > 2 ){
+										return false;
+				}
+				if((dx+x+current_figure .location.x<0)||(dx+x+current_figure.location.x>GLASS_HIGHT_BRICKS)||(dy+y+current_figure.location.y<0)||(dy+y+current_figure.location.y+figureLength>GLASS_WIDTH_BRICKS)){
+					return false;	
+				}
+
+			}
+		}
+		return true;		
+	}
 //Генерация фигуры
 	function createFigure()
 	{
-		figure_current.figure = figureObjectArray[Math.floor(Math.random() * figureObjectArray.length)];
-		console.log(figure_current.figure);
-		figure_current.location={};
-		figure_current.location.x=0;
-		figure_current.location.y=Math.floor(GLASS_WIDTH_BRICKS/2) - Math.floor(figure_current.figure.states[0][0].length/2);
-		figure_current.state=0;
+		current_figure.figure = figureObjectArray[Math.floor(Math.random() * figureObjectArray.length)];
+		console.log(current_figure.figure);
+		current_figure.location.x=0;
+		current_figure.location.y=Math.floor(GLASS_WIDTH_BRICKS/2) - Math.floor(current_figure.figure.states[0][0].length/2);
+		current_figure.stateNumber=0;
+		current_figure.state = current_figure.figure.states[0];
 		figureNeeded = false;
-		for (var i = 0; i < figure_current.figure.states[0].length;i++)
+		if (!testFigurePlace(0,0,current_figure.state)){generateGameOverEvent();}
+		for (var i = 0; i < current_figure.figure.states[0].length;i++)
 		{
-			for (var j = 0; j < figure_current.figure.states[0][0].length;j++)
+			for (var j = 0; j < current_figure.figure.states[0][0].length;j++)
 				{
-					glassObject=document.getElementById(glassObjectName);
-					if (glassStateArray[i][j+figure_current.location.y]=="2"){
+					if (glassStateArray[i][j+current_figure.location.y]=="2"){
 								generateGameOverEvent(false);
 							}
-					glassStateArray[i][j+figure_current.location.y]=figure_current.figure.states[0][i][j];
+					glassStateArray[i][j+current_figure.location.y]=current_figure.figure.states[0][i][j];
 				}
 		}
 	}
 //поворот фигуры
 	function rotateFigure()
 	{
-		var gotostate = figure_current.state + 1;
+		var gotostate = current_figure.stateNumber + 1;
 		if (gotostate == 4){gotostate = 0};
 		var rotationPossible=true;
 		console.log("!!!");
 //проверка возможности поворота
-		for (var i=figure_current.location.x; i<=figure_current.location.x+figure_current.figure.states[gotostate].length; i++)
+		for (var i=current_figure.location.x; i<=current_figure.location.x+current_figure.figure.states[gotostate].length; i++)
 		{
-			for (var j=figure_current.location.y; j<=figure_current.location.y+figure_current.figure.states[gotostate][0].length; j++)
+			for (var j=current_figure.location.y; j<=current_figure.location.y+current_figure.figure.states[gotostate][0].length; j++)
 			{
 				if (glassStateArray[i][j]=="2")
 				{
@@ -227,20 +256,20 @@ function initialisation()
 
 		if (rotationPossible)
 		{
-			for (var i=figure_current.location.x; i<=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i++)
+			for (var i=current_figure.location.x; i<=current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i++)
 				{
-					for (var j=figure_current.location.y; j<=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j++)
+					for (var j=current_figure.location.y; j<=current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j++)
 					{
 						if (glassStateArray[i][j]=="1"){glassStateArray[i][j]="0";}
 					}
 				}
-			figure_current.state=gotostate;
-			for (var i=figure_current.location.x; i<figure_current.location.x+figure_current.figure.states[figure_current.state].length; i++)
+			current_figure.stateNumber=gotostate;
+			current_figure.state=current_figure.figure.states[gotostate];
+			for (var i=current_figure.location.x; i<current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i++)
 				{
-					for (var j=figure_current.location.y; j<figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j++)
+					for (var j=current_figure.location.y; j<current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j++)
 					{
-						console.log(figure_current.figure.states[figure_current.state][i-figure_current.location.x]);
-						if (figure_current.figure.states[figure_current.state][i-figure_current.location.x][j-figure_current.location.y]=="1"){glassStateArray[i][j]="1";}
+						if (current_figure.figure.states[current_figure.stateNumber][i-current_figure.location.x][j-current_figure.location.y]=="1"){glassStateArray[i][j]="1";}
 					}
 				}	
 		}
@@ -250,29 +279,13 @@ function initialisation()
 //Функция движения влево
 		function moveLeft()
 		{
-			var isMovePossible=true;
-//Проверка на то что фигура не у левого края
-			if (figure_current.location.y==0)
-			{
-				isMovePossible=false;
-			}
-//Проверка на то что слева нет фигур
-			for (var i=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i>=figure_current.location.x; i--)
-			{
-				for (var j=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j>=figure_current.location.y; j--)
-					{
-						if ((glassStateArray[i][j]=="1")&&(glassStateArray[i][j-1]=="2"))
-						{
-							isMovePossible=false;
-						}
-					}	
-			}
+//проверка возможности размещения фигуры
+			if(testFigurePlace(0,-1,current_figure.state))
 //движение влево
-			if(isMovePossible)
 			{
-				for (var i=figure_current.location.x; i<=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i++)
+				for (var i=current_figure.location.x; i<=current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i++)
 				{
-					for (var j=figure_current.location.y; j<=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j++)
+					for (var j=current_figure.location.y; j<=current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j++)
 						{
 							if (glassStateArray[i][j]=="1")
 							{
@@ -281,36 +294,20 @@ function initialisation()
 							}
 						}	
 			}	
-			figure_current.location.y--;
+			current_figure.location.y--;
 			}
 
 		}
 //Функция движения вправо
 		function moveRight()
 		{
-			var isMovePossible=true;
-//Проверка на то что фигура не у правого края
-			if ((figure_current.location.y+figure_current.figure.states[figure_current.state][0].length)==(GLASS_WIDTH_BRICKS))
-			{
-				isMovePossible=false;
-			}
-//Проверка на то что справа нет фигур
-			for (var i=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i>=figure_current.location.x; i--)
-			{
-				for (var j=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j>=figure_current.location.y; j--)
-					{
-						if ((glassStateArray[i][j]=="1")&&(glassStateArray[i][j+1]=="2"))
-						{
-							isMovePossible=false;
-						}
-					}	
-			}
+//проверка возможности размещения фигуры
+			if(testFigurePlace(0,+1,current_figure.state))
 //движение вправо
-			if(isMovePossible)
 			{
-				for (var i=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i>=figure_current.location.x; i--)
+				for (var i=current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i>=current_figure.location.x; i--)
 				{
-					for (var j=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j>=figure_current.location.y; j--)
+					for (var j=current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j>=current_figure.location.y; j--)
 						{
 							if (glassStateArray[i][j]=="1")
 							{
@@ -319,7 +316,7 @@ function initialisation()
 							}
 						}	
 			}	
-			figure_current.location.y++;
+			current_figure.location.y++;
 			}
 
 		}
@@ -331,15 +328,15 @@ function initialisation()
 
 //проверка возможности опускания фигуры
 //если она достигла дна стакана
-			if ((figure_current.location.x+figure_current.figure.states[figure_current.state].length)==GLASS_HIGHT_BRICKS)
+			if ((current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length)==GLASS_HIGHT_BRICKS)
 			{
 				isFallPossible=false;
 			}
 
 //если она столкнулась с другой фигурой
-			for (var i=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i>=figure_current.location.x; i--)
+			for (var i=current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i>=current_figure.location.x; i--)
 			{
-				for (var j=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j>=figure_current.location.y; j--)
+				for (var j=current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j>=current_figure.location.y; j--)
 					{
 						if ((glassStateArray[i][j]=="1")&&(glassStateArray[i+1][j]=="2"))
 						{
@@ -351,9 +348,9 @@ function initialisation()
 //опускание фигуры если это возможно...
 			if (isFallPossible)
 			{
-				for (var i=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i>=figure_current.location.x; i--)
+				for (var i=current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i>=current_figure.location.x; i--)
 				{
-					for (var j=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j>=figure_current.location.y; j--)
+					for (var j=current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j>=current_figure.location.y; j--)
 						{
 							if (glassStateArray[i][j]=="1")
 							{
@@ -367,9 +364,9 @@ function initialisation()
 			else
 			{
 				figureNeeded=true;
-				for (var i=figure_current.location.x+figure_current.figure.states[figure_current.state].length; i>=figure_current.location.x; i--)
+				for (var i=current_figure.location.x+current_figure.figure.states[current_figure.stateNumber].length; i>=current_figure.location.x; i--)
 				{
-					for (var j=figure_current.location.y+figure_current.figure.states[figure_current.state][0].length; j>=figure_current.location.y; j--)
+					for (var j=current_figure.location.y+current_figure.figure.states[current_figure.stateNumber][0].length; j>=current_figure.location.y; j--)
 						{
 							if (glassStateArray[i][j]=="1")
 							{
@@ -380,9 +377,9 @@ function initialisation()
 //проверка на заполненные ряды
 			checkFilledRows();
 			}
-			figure_current.location.x++;
-			draw(glassObject);
-			if ((instantFall)&&(figure_current.location.x<GLASS_HIGHT_BRICKS)){fall();}
+			current_figure.location.x++;
+			renderer.draw(glassStateArray);
+			if ((instantFall)&&(current_figure.location.x<GLASS_HIGHT_BRICKS)){fall();}
 		}
 
 	function gameOver(flag)
@@ -498,56 +495,6 @@ function initialisation()
 			}
 		}
 	}
-
-//отрисовка текущего состояния стакана
-	function draw(object)
-	{
-		var flag=true;
-		var ctx = object.getContext('2d');
-		for (var i = 0; i < GLASS_WIDTH_BRICKS; i++)
-		{
-			for (var j = 0; j < GLASS_HIGHT_BRICKS; j++)
-			{
-				ctx.fillStyle = 'rgb(200, 0, 0)';
-				if(glassStateArray[j][i]=="1")
-				{
-					ctx.fillRect(i*brickWidth, j*brickHeight, brickWidth , brickHeight);
-
-				};
-				ctx.fillStyle = 'rgb(200, 200, 0)';
-				if(glassStateArray[j][i]=="0"){
-					ctx.fillRect(i*brickWidth, j*brickHeight, brickWidth , brickHeight);
-				};
-				ctx.fillStyle = 'rgb(0, 100, 100)';
-				if(glassStateArray[j][i]=="2"){
-					ctx.fillRect(i*brickWidth, j*brickHeight, brickWidth , brickHeight);
-				};
-			}	
-		}
-        
-	}
-//Отрисовка сетки над стаканом	
-	function drawNet(netObjectName)
-	{
-		var netObject=document.getElementById(netObjectName);
-		console.log(netObject);
-		var ctx = netObject.getContext('2d');
-		ctx.beginPath();
-		//var itrations=
-		for (var i = 0; i <= GLASS_WIDTH; i=i+brickWidth)
-		{
-
-				ctx.moveTo(i,0);
-				ctx.lineTo(i,GLASS_HIGHT);
-				ctx.stroke();
-		}
-		for (var j = 0; j <=GLASS_HIGHT; j=j+ brickHeight)
-		{
-			ctx.moveTo(0,j);
-			ctx.lineTo(GLASS_WIDTH,j);
-			ctx.stroke();
-		}
-	}
 }
 
 //Генератор событий начала игры
@@ -575,3 +522,4 @@ function generateGameOverEvent()
 	var event = new CustomEvent("tetrisGameOverEvent");
 	document.dispatchEvent(event);	
 }
+//598
