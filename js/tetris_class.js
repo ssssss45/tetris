@@ -1,11 +1,11 @@
 class Tetris{
 /*
-██╗███╗   ██╗██╗████████╗
-██║████╗  ██║██║╚══██╔══╝
-██║██╔██╗ ██║██║   ██║   
-██║██║╚██╗██║██║   ██║   
-██║██║ ╚████║██║   ██║   
-╚═╝╚═╝  ╚═══╝╚═╝   ╚═╝  
+ ██████╗ ██████╗ ███╗   ██╗███████╗████████╗██████╗ ██╗   ██╗ ██████╗████████╗
+██╔════╝██╔═══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║   ██║██╔════╝╚══██╔══╝
+██║     ██║   ██║██╔██╗ ██║███████╗   ██║   ██████╔╝██║   ██║██║        ██║   
+██║     ██║   ██║██║╚██╗██║╚════██║   ██║   ██╔══██╗██║   ██║██║        ██║   
+╚██████╗╚██████╔╝██║ ╚████║███████║   ██║   ██║  ██║╚██████╔╝╚██████╗   ██║   
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝  ╚═════╝   ╚═╝  
 */
 	constructor(params)
 	{
@@ -78,6 +78,22 @@ class Tetris{
 		};
 		keycon.bindActions(key);
 	}
+//добавление тапов и свайпов
+	addTouchToController("left",[Infinity,200,400,-400],this.keycon);
+	addTouchToController("right",[-200,-Infinity,400,-400],this.keycon);
+	addTouchToController("space",[400,-400,-200,-Infinity],this.keycon);
+	addTouchToController("up",[50,-50, 50,-50],this.keycon);
+	function addTouchToController(name,keys,keycon)
+	{
+		var key={
+			name: name,
+			coords: keys,
+			active: true,
+			type: "touch"
+		};
+		keycon.bindActions(key);
+	}
+
 
 	this.figureObjectArray=[];
 	for (var i = 0, len = this.figures.length; i < len; i++)
@@ -148,16 +164,15 @@ class Tetris{
 //отрисовка изначального экрана
 	this.renderer.draw(this.glassStateArray, this.stateMachine.getState());
 	}
-	
-
 /*
-██╗███╗   ██╗██╗████████╗
-██║████╗  ██║██║╚══██╔══╝
-██║██╔██╗ ██║██║   ██║   
-██║██║╚██╗██║██║   ██║   
-██║██║ ╚████║██║   ██║   
-╚═╝╚═╝  ╚═══╝╚═╝   ╚═╝  
-*/
+ ██████╗ ██████╗ ███╗   ██╗███████╗████████╗██████╗ ██╗   ██╗ ██████╗████████╗
+██╔════╝██╔═══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║   ██║██╔════╝╚══██╔══╝
+██║     ██║   ██║██╔██╗ ██║███████╗   ██║   ██████╔╝██║   ██║██║        ██║   
+██║     ██║   ██║██║╚██╗██║╚════██║   ██║   ██╔══██╗██║   ██║██║        ██║   
+╚██████╗╚██████╔╝██║ ╚████║███████║   ██║   ██║  ██║╚██████╔╝╚██████╗   ██║   
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝  ╚═════╝   ╚═╝  
+*/ 
+
 
 //начало игры
 	gamestart()
@@ -172,8 +187,9 @@ class Tetris{
 		this.rotate=false;
 		if (state=="playing")
 		{
-			var boundActivateListenerActions =activateListenerActions .bind(this);
-			var boundDeactivateListenerActions =deactivateListenerActions .bind(this);
+			var boundActivateListenerActions =activateListenerActions.bind(this);
+			var boundDeactivateListenerActions =deactivateListenerActions.bind(this);
+			var boundTouchListenerActions =touchListenerActions.bind(this);
 			this.score=0;
 			this.setScore(this);
 			this.is_paused=false;
@@ -189,28 +205,38 @@ class Tetris{
 			this.glassObject.addEventListener("controls:deactivate",function(e) {
 				boundDeactivateListenerActions(e.detail.action);
 			});
+			this.glassObject.addEventListener("controls:swipe",function(e) {
+				boundTouchListenerActions(e.detail.action);
+			});
 	//действия на нажатие кнопки
-				function activateListenerActions(action, currentThis)
+				function activateListenerActions(action)
 				{
 					switch(action)
 					{
-	//					case "left": this.leftActive=true; break;
-	//					case "right": this.rightActive=true; break;
 						case "down": this.downActive=true; break;
-						case "space": if(this.stateMachine.getState()!="paused"){ this.instantFall=true;/* this.fall_countdown=this.gameStepTimer; this.fall(this)};*/ this.instantFallFunc(this)}break;
-	//					case "up": this.rotate=true; break;
+						case "space": if(this.stateMachine.getState()!="paused"){this.instantFallFunc(this)}break;
 					}
 				}
 
 	//действия на отжатие кнопки
-				function deactivateListenerActions(action, currentThis)
+				function deactivateListenerActions(action)
 				{
 					switch(action)
 					{
 						case "left": this.leftActive=true; break;
 						case "right": this.rightActive=true; break;
 						case "down": this.downActive=false; break;
-						case "space": this.instantFall=false; break;
+						case "up": this.rotate=true; break;
+					}
+				}
+				function touchListenerActions(action)
+				{console.log("touched");
+					switch(action)
+					{
+
+						case "left": this.leftActive=true; break;
+						case "right": this.rightActive=true; break;
+						case "space": if(this.stateMachine.getState()!="paused"){ this.instantFall=true; this.instantFallFunc(this)}break;
 						case "up": this.rotate=true; break;
 					}
 				}
@@ -455,7 +481,6 @@ class Tetris{
 		{
 			this.stateMachine.setState("gameover");
 			this.keycon.enabled=false;
-			console.log(this.score);
 			clearInterval(this.gameStepIntervalId);
 		}
 	}

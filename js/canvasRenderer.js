@@ -10,7 +10,6 @@ class CanvasRenderer
 		this.brickWidth= params.brickWidth || Math.floor(this.GLASS_WIDTH/this.GLASS_WIDTH_BRICKS);
 		this.brickHight= params.brickHight || Math.floor(this.GLASS_HIGHT/this.GLASS_HIGHT_BRICKS);
 		this.containers = document.getElementsByClassName(params.containers);
-		console.log(this.containers);
 		this.container=this.containers[0];
 
 //добавление канваса поля
@@ -68,7 +67,6 @@ class CanvasRenderer
 		}
 		if(state=="gameover")
 		{
-			console.log("!!!");
 			this.clearCanvas(this.netCanvas);
 			this.clearCanvas(this.fieldCanvas);
 			this.netNeedsDrawing=true;

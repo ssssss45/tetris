@@ -32,8 +32,10 @@ class keyboardController
 			}	
 		}else{
 			this.actions.push( actions_to_bind );
-			this.addKeys( actions_to_bind );
 			if (actions_to_bind.coords!=undefined){this.touchActions.push(actions_to_bind);}
+			else{
+			this.addKeys( actions_to_bind );
+			}	
 		}
 	}
 
@@ -144,18 +146,20 @@ class keyboardController
 	touchClickEnd(event){
 		if (event.type=="touchend")
 		{
+			var type = "touch";
 			var touchobj = event.changedTouches[0]
 			var changeX = this.currentTouchX-touchobj.pageX;
 			var changeY = this.currentTouchY-touchobj.pageY;
 		}
 		if (event.type=="mouseup")
 		{
+			var type = "click";
 			var changeX = this.currentTouchX-event.pageX;
 			var changeY = this.currentTouchY-event.pageY;
 		}
 
 		for (var i = 0, len = this.touchActions.length; i < len; i++) {
-			if ((changeX<this.touchActions[i].coords[0])&&(changeX>this.touchActions[i].coords[1])&&(changeY<this.touchActions[i].coords[2])&&(changeY>this.touchActions[i].coords[3]))
+			if ((changeX<this.touchActions[i].coords[0])&&(changeX>this.touchActions[i].coords[1])&&(changeY<this.touchActions[i].coords[2])&&(changeY>this.touchActions[i].coords[3])&&(type==this.touchActions[i].type))
 			{
 				var swipeEvent = new CustomEvent("controls:swipe", {
 					detail: {
