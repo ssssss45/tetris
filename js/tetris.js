@@ -1,5 +1,13 @@
 window.addEventListener('load', tetris);
 function tetris(){
+/*
+██╗███╗   ██╗██╗████████╗
+██║████╗  ██║██║╚══██╔══╝
+██║██╔██╗ ██║██║   ██║   
+██║██║╚██╗██║██║   ██║   
+██║██║ ╚████║██║   ██║   
+╚═╝╚═╝  ╚═══╝╚═╝   ╚═╝  
+*/
 //Размеры стакана
 	const GLASS_WIDTH=360;
 	const GLASS_HIGHT=600;
@@ -132,6 +140,15 @@ function initialisation()
 	var instantFall=false;
 	var rotate=false;
 
+/*
+██╗███╗   ██╗██╗████████╗
+██║████╗  ██║██║╚══██╔══╝
+██║██╔██╗ ██║██║   ██║   
+██║██║╚██╗██║██║   ██║   
+██║██║ ╚████║██║   ██║   
+╚═╝╚═╝  ╚═══╝╚═╝   ╚═╝  
+*/
+
 //начало игры
 	function gamestart(glassObject)
 	{
@@ -190,26 +207,6 @@ function initialisation()
 		if ((state=="playing")&&(!is_paused)){setTimeout(gamestep,40);}
 	}
 
-//проверка возможности постановки фигуры
-	function testFigurePlace(dx, dy, figure_state){
-		figure_state = figure_state || current_figure.current_state;
-		var figureLength=figure_state[0].length;
-		var figureHight=figure_state.length;
-		for (var x = 0; x < figureHight;x++)
-		{
-			for (var y = 0; y < figureLength; y++)
-			{
-				if ( Number(figure_state[x][y]) + Number(glassStateArray[dx+x+current_figure.location.x][dy+y+current_figure.location.y]) > 2 ){
-										return false;
-				}
-
-			}
-		}
-		if((dx+current_figure .location.x<0)||(dx+current_figure.location.x+figureHight>GLASS_HIGHT_BRICKS)||(dy+current_figure.location.y<0)||(dy+current_figure.location.y+figureLength>GLASS_WIDTH_BRICKS)){
-		return false;	
-				}
-		return true;		
-	}
 //Генерация фигуры
 	function createFigure()
 	{
@@ -232,6 +229,36 @@ function initialisation()
 				}
 		}
 	}
+
+/*
+███╗   ███╗ ██████╗ ██╗   ██╗███████╗███╗   ███╗███████╗███╗   ██╗████████╗
+████╗ ████║██╔═══██╗██║   ██║██╔════╝████╗ ████║██╔════╝████╗  ██║╚══██╔══╝
+██╔████╔██║██║   ██║██║   ██║█████╗  ██╔████╔██║█████╗  ██╔██╗ ██║   ██║   
+██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝  ██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   
+██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   
+╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝  
+*/	
+//проверка возможности постановки фигуры
+	function testFigurePlace(dx, dy, figure_state){
+		figure_state = figure_state || current_figure.current_state;
+		var figureLength=figure_state[0].length;
+		var figureHight=figure_state.length;
+		for (var x = 0; x < figureHight;x++)
+		{
+			for (var y = 0; y < figureLength; y++)
+			{
+				if ( Number(figure_state[x][y]) + Number(glassStateArray[dx+x+current_figure.location.x][dy+y+current_figure.location.y]) > 2 ){
+										return false;
+				}
+
+			}
+		}
+		if((dx+current_figure .location.x<0)||(dx+current_figure.location.x+figureHight>GLASS_HIGHT_BRICKS)||(dy+current_figure.location.y<0)||(dy+current_figure.location.y+figureLength>GLASS_WIDTH_BRICKS)){
+		return false;	
+				}
+		return true;		
+	}
+
 //поворот фигуры
 	function rotateFigure()
 	{
@@ -344,7 +371,14 @@ function initialisation()
 			renderer.draw(glassStateArray);
 			if ((instantFall)&&(current_figure.location.x<GLASS_HIGHT_BRICKS)){fall();}
 		}
-
+/*
+███╗   ███╗ ██████╗ ██╗   ██╗███████╗███╗   ███╗███████╗███╗   ██╗████████╗
+████╗ ████║██╔═══██╗██║   ██║██╔════╝████╗ ████║██╔════╝████╗  ██║╚══██╔══╝
+██╔████╔██║██║   ██║██║   ██║█████╗  ██╔████╔██║█████╗  ██╔██╗ ██║   ██║   
+██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝  ██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   
+██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   
+╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝  
+*/	
 	function gameOver(flag)
 	{
 		state = "gameover";
@@ -397,7 +431,7 @@ function initialisation()
 		}
 	}
 
-//даействия на нажатие кнопки
+//действия на нажатие кнопки
 	function activateListenerActions(action)
 	{
 		switch(action)
@@ -459,6 +493,15 @@ function initialisation()
 		}
 	}
 }
+
+/*
+███████╗██╗   ██╗███████╗███╗   ██╗████████╗███████╗
+██╔════╝██║   ██║██╔════╝████╗  ██║╚══██╔══╝██╔════╝
+█████╗  ██║   ██║█████╗  ██╔██╗ ██║   ██║   ███████╗
+██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║   ██║   ╚════██║
+███████╗ ╚████╔╝ ███████╗██║ ╚████║   ██║   ███████║
+╚══════╝  ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝                                                                                                  
+*/
 
 //Генератор событий начала игры
 function generateGameStartEvent(object)
