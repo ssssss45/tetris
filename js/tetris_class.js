@@ -9,6 +9,9 @@ class Tetris{
 */
 	constructor(params)
 	{
+console.log(params.controls);
+
+
 //Размеры стакана
 	this.GLASS_WIDTH = params.GLASS_WIDTH || 360;
 	this.GLASS_HIGHT = params.GLASS_HIGHT || 600;
@@ -63,21 +66,24 @@ class Tetris{
 //получение объекта поля из рендерера (для слушателей)	
 	this.glassObject=this.renderer.getField();
 	this.keycon.attach(this.glassObject);
-//Добавление кнопок в контроллер
-	addKeyToController("left",[37],this.keycon);
-	addKeyToController("right",[39],this.keycon);
-	addKeyToController("up",[38],this.keycon);
-	addKeyToController("down",[40],this.keycon);
-	addKeyToController("space",[32],this.keycon);
-	function addKeyToController(name,keys,keycon)
+//если params.controls пуст то устанавливаются кнопки по умолчанию, если нет то из него
+	if (params.controls==undefined)
 	{
-		var key={
-			name: name,
-			keys: keys,
-			active: true
-		};
-		keycon.bindActions(key);
-	}
+//Добавление кнопок в контроллер
+		addKeyToController("left",[37],this.keycon);
+		addKeyToController("right",[39],this.keycon);
+		addKeyToController("up",[38],this.keycon);
+		addKeyToController("down",[40],this.keycon);
+		addKeyToController("space",[32],this.keycon);
+		function addKeyToController(name,keys,keycon)
+		{
+			var key={
+				name: name,
+				keys: keys,
+				active: true
+			};
+			keycon.bindActions(key);
+		}
 //добавление тапов и свайпов
 	addTouchToController("left",[Infinity,200,400,-400],this.keycon);
 	addTouchToController("right",[-200,-Infinity,400,-400],this.keycon);
@@ -93,7 +99,12 @@ class Tetris{
 		};
 		keycon.bindActions(key);
 	}
-
+	}
+	else
+	{
+		for (var i=0; i<params.controls.length;i++)
+			this.keycon.bindActions(params.controls[i]);
+	}
 
 	this.figureObjectArray=[];
 	for (var i = 0, len = this.figures.length; i < len; i++)
@@ -230,7 +241,7 @@ class Tetris{
 					}
 				}
 				function touchListenerActions(action)
-				{console.log("touched");
+				{
 					switch(action)
 					{
 

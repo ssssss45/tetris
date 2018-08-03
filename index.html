@@ -28,11 +28,57 @@
 				'pointContainer':"tetrisPoints",
 				'container': "tetrisGame",
 				'fallDelta': 700,
-				'gameStepTimer': 40
+				'gameStepTimer': 40,
+				'controls':[	
+					{
+						"name":"left",
+						"keys":[37, 65],
+						"active":true
+					},
+					{
+						"name":"right",
+						"keys":[39, 68],
+						"active":true
+					},
+					{
+						"name":"up",
+						"keys":[38, 87],
+						"active":true
+					},
+					{
+						"name":"down",
+						"keys":[38, 83],
+						"active":true
+					},
+					{
+						"name":"space",
+						"keys":[32],
+						"active":true
+					},
+					{
+						"name":"left",
+						"coords":[Infinity,200,400,-400],
+						"type":"touch"
+					},
+					{
+						"name":"right",
+						"coords":[-200,-Infinity,400,-400],
+						"type":"touch"
+					},
+					{
+						"name":"space",
+						"coords":[400,-400,-200,-Infinity],
+						"type":"touch"
+					},
+					{
+						"name":"up",
+						"coords":[50,-50, 50,-50],
+						"type":"touch"
+					}
+				]
 			});
 			tetris.startListeners();
 		});
 	</script>
 </body>
 </html>
-
