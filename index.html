@@ -5,6 +5,7 @@
 	<script src="js/keyboard-controller.js"></script>
 	<script src="js/tetris_class.js"></script>
 	<script src="js/canvasRenderer.js"></script>
+	<script src="js/tetris_statemachine.js"></script>
 
 </head>
 <body>
@@ -13,7 +14,7 @@
 	<div style="top:610px ;position: absolute;">
 			<button type="button" id="newTetrisGameButton" onclick="generateGameStartEvent()">Новая игра</button>
 			<button type="button" id="pauseTetrisGameButton" onclick="generateGamePauseEvent()">Пауза</button>
-			<div class="tetrisPoints">AAAAA</div>
+			<div class="tetrisPoints"></div>
 	</div>
 	<script>
 			window.addEventListener('load', function(){

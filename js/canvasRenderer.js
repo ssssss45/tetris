@@ -28,13 +28,16 @@ class CanvasRenderer
 		this.netCanvas.style="position: absolute;";
 		this.container.appendChild(this.netCanvas);
 
-		this.drawNet();
+		this.netNeedsDrawing=true;
 	}
 //отрисовка стакана
-	draw(glassStateArray)
+	draw(glassStateArray,state,points)
 	{
-		var flag=true;
+
 		var ctx = this.fieldCanvas.getContext('2d');
+		if (state=="playing")
+		{
+		if (this.netNeedsDrawing){this.drawNet(); this.netNeedsDrawing=false}
 		for (var i = 0; i < this.GLASS_WIDTH_BRICKS; i++)
 		{
 			for (var j = 0; j < this.GLASS_HIGHT_BRICKS; j++)
@@ -55,6 +58,25 @@ class CanvasRenderer
 				};
 			}	
 		}
+		}
+		if(state=="inactive")
+		{	
+			ctx.font = "40px Arial";
+			ctx.fillText("ТЕТРИС",Math.floor(this.fieldCanvas.width/2-60),70);
+			ctx.font = "20px Arial";
+			ctx.fillText("Добро пожаловать!",Math.floor(this.fieldCanvas.width/2-70),120);
+		}
+		if(state=="gameover")
+		{
+			console.log("!!!");
+			this.clearCanvas(this.netCanvas);
+			this.clearCanvas(this.fieldCanvas);
+			this.netNeedsDrawing=true;
+			ctx.font = "40px Arial";
+			ctx.fillText("Игра окончена!",Math.floor(20),70);
+			ctx.font = "20px Arial";
+			ctx.fillText("Ваш счет: "+points,Math.floor(20),120);
+		}	
         
 	}
 //Отрисовка сетки над стаканом	
@@ -74,6 +96,12 @@ class CanvasRenderer
 			ctx.lineTo(this.GLASS_WIDTH,j);
 			ctx.stroke();
 		}
+	}
+
+	clearCanvas(canvas)
+	{
+		var ctx = canvas.getContext('2d');
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 	}
 
 	getField()
