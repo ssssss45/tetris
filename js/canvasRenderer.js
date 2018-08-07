@@ -19,7 +19,6 @@ class CanvasRenderer
 		this.fieldCanvas.style="position: absolute;";
 		this.container.appendChild(this.fieldCanvas);
 
-
 //добавление канваса сетки
 		this.netCanvas = document.createElement("canvas");
 		this.netCanvas.height=this.GLASS_HIGHT;
@@ -30,33 +29,41 @@ class CanvasRenderer
 		this.netNeedsDrawing=true;
 	}
 //отрисовка стакана
-	draw(glassStateArray,state,points)
+	draw(figureX,figureY,figure,glassStateArray,state,points)
 	{
-
 		var ctx = this.fieldCanvas.getContext('2d');
 		if (state=="playing")
 		{
-		if (this.netNeedsDrawing){this.drawNet(); this.netNeedsDrawing=false}
-		for (var i = 0; i < this.GLASS_WIDTH_BRICKS; i++)
-		{
-			for (var j = 0; j < this.GLASS_HIGHT_BRICKS; j++)
-			{
-				ctx.fillStyle = 'rgb(200, 0, 0)';
-				if(glassStateArray[j][i]=="1")
+			if (this.netNeedsDrawing){this.drawNet(); this.netNeedsDrawing=false}
+			for (var i = 0; i < this.GLASS_WIDTH_BRICKS; i++)
 				{
-					ctx.fillRect(i*this.brickWidth, j*this.brickHight, this.brickWidth , this.brickHight);
-
-				};
-				ctx.fillStyle = 'rgb(200, 200, 0)';
-				if(glassStateArray[j][i]=="0"){
-					ctx.fillRect(i*this.brickWidth, j*this.brickHight, this.brickWidth , this.brickHight);
-				};
-				ctx.fillStyle = 'rgb(0, 100, 100)';
-				if(glassStateArray[j][i]=="2"){
-					ctx.fillRect(i*this.brickWidth, j*this.brickHight, this.brickWidth , this.brickHight);
-				};
-			}	
-		}
+					for (var j = 0; j < this.GLASS_HIGHT_BRICKS; j++)
+					{
+						ctx.fillStyle = 'rgb(200, 0, 0)';
+						ctx.fillStyle = 'rgb(200, 200, 0)';
+						if(glassStateArray[j][i]=="0"){
+							ctx.fillRect(i*this.brickWidth, j*this.brickHight, this.brickWidth , this.brickHight);
+						};
+						ctx.fillStyle = 'rgb(0, 100, 100)';
+						if(glassStateArray[j][i]=="2"){
+							ctx.fillRect(i*this.brickWidth, j*this.brickHight, this.brickWidth , this.brickHight);
+					};
+				}	
+			}
+			ctx.fillStyle = 'rgb(200, 0, 0)';
+			if (figure!= {})
+				{
+					for (var i = 0; i <figure.length; i++)
+					{
+						for (var j = 0; j <  figure[0].length; j++)
+						{
+							if(figure[i][j]=="1")
+							{
+								ctx.fillRect((figureY+j)*this.brickWidth, (figureX+i)*this.brickHight, this.brickWidth , this.brickHight);
+							};
+						};
+					}
+				}
 		}
 		if(state=="inactive")
 		{	

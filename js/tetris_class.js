@@ -9,158 +9,157 @@ class Tetris{
 */
 	constructor(params)
 	{
-console.log(params.controls);
-
-
-//Размеры стакана
-	this.GLASS_WIDTH = params.GLASS_WIDTH || 360;
-	this.GLASS_HIGHT = params.GLASS_HIGHT || 600;
-	this.GLASS_HIGHT_BRICKS = params.GLASS_HIGHT_BRICKS || 20;
-	this.GLASS_WIDTH_BRICKS = params.GLASS_WIDTH_BRICKS || 10;
-//Создание массива фигур
-	this.figures=params.FIGURES || ["1,1,0;0,1,1","0,1,1;1,1,0","1,1;1,1","1,0,0;1,1,1","0,0,1;1,1,1","0,1,0;1,1,1","1,1,1,1"];
-//Размеры "кирпичей"
-	this.brickHight=Math.floor(this.GLASS_HIGHT/this.GLASS_HIGHT_BRICKS);
-	this.brickWidth=Math.floor(this.GLASS_WIDTH/this.GLASS_WIDTH_BRICKS);
-//хранения ID интеравла шага игры
-	this.gameStepIntervalId;
-//данные задержек
-	this.fallDeltaDefault = params.fallDelta|| 700;
-	this.gameStepTimer = params.gameStepTimer || 40;
-//запись контейнера с счетом	
-	this.pointContainer = document.getElementsByClassName(params.pointContainer)[0];
-//инициализация рендеерера
-	this.renderer= new CanvasRenderer(
-	{
-		'GLASS_WIDTH': this.GLASS_WIDTH,
-		'GLASS_HIGHT': this.GLASS_HIGHT,
-		'GLASS_HIGHT_BRICKS': this.GLASS_HIGHT_BRICKS,
-		'GLASS_WIDTH_BRICKS': this.GLASS_WIDTH_BRICKS,
-		'brickWidth': this.brickWidth,
-		'brickhight': this.brickHight,
-		'containers' : params.container
-	})
-//стейт машина
-	this.stateMachine = new tetrisGameStateMachine;
-//Массив Стакана
-	this.glassStateArray=[[],[]];
-//Флаг того что нужна новая фигура
-	this.figureNeeded=true;
-//Задержка между авто-смещением фигуры вниз
-	this.fall_delta;
-//Текущее состояние игры
-	this.state="inactive";
-//объект текущей фигуры
-	this.current_figure={};
-	this.current_figure.location={};
-//таймер то опускания фигуры
-	this.fall_countdown;
-//количество очков
-	this.score=0;
-	this.setScore(this);
-//массив фигур
-	this.figureObjectArray=[];
-//Состояние паузы
-	this.is_paused=false;
-	this.keycon= new keyboardController();
-//получение объекта поля из рендерера (для слушателей)	
-	this.glassObject=this.renderer.getField();
-	this.keycon.attach(this.glassObject);
-//если params.controls пуст то устанавливаются кнопки по умолчанию, если нет то из него
-	if (params.controls==undefined)
-	{
-//Добавление кнопок в контроллер
-		addKeyToController("left",[37],this.keycon);
-		addKeyToController("right",[39],this.keycon);
-		addKeyToController("up",[38],this.keycon);
-		addKeyToController("down",[40],this.keycon);
-		addKeyToController("space",[32],this.keycon);
-		function addKeyToController(name,keys,keycon)
+		//Размеры стакана
+		this.GLASS_WIDTH = params.GLASS_WIDTH || 360;
+		this.GLASS_HIGHT = params.GLASS_HIGHT || 600;
+		this.GLASS_HIGHT_BRICKS = params.GLASS_HIGHT_BRICKS || 20;
+		this.GLASS_WIDTH_BRICKS = params.GLASS_WIDTH_BRICKS || 10;
+		//Создание массива фигур
+		this.figures=params.FIGURES || ["1,1,0;0,1,1","0,1,1;1,1,0","1,1;1,1","1,0,0;1,1,1","0,0,1;1,1,1","0,1,0;1,1,1","1,1,1,1","0,1,0;1,1,1;0,1,0"];
+		//Размеры "кирпичей"
+		this.brickHight=Math.floor(this.GLASS_HIGHT/this.GLASS_HIGHT_BRICKS);
+		this.brickWidth=Math.floor(this.GLASS_WIDTH/this.GLASS_WIDTH_BRICKS);
+		//хранения ID интеравла шага игры
+		this.gameStepIntervalId;
+		//данные задержек
+		this.fallDeltaDefault = params.fallDelta|| 700;
+		this.gameStepTimer = params.gameStepTimer || 40;
+		//запись контейнера с счетом	
+		this.pointContainer = document.getElementsByClassName(params.pointContainer)[0];
+		//инициализация рендерера
+		this.renderer= new CanvasRenderer(
 		{
-			var key={
-				name: name,
-				keys: keys,
-				active: true
-			};
-			keycon.bindActions(key);
-		}
-//добавление тапов и свайпов
-	addTouchToController("left",[Infinity,200,400,-400],this.keycon);
-	addTouchToController("right",[-200,-Infinity,400,-400],this.keycon);
-	addTouchToController("space",[400,-400,-200,-Infinity],this.keycon);
-	addTouchToController("up",[50,-50, 50,-50],this.keycon);
-	function addTouchToController(name,keys,keycon)
-	{
-		var key={
-			name: name,
-			coords: keys,
-			active: true,
-			type: "touch"
-		};
-		keycon.bindActions(key);
-	}
-	}
-	else
-	{
-		for (var i=0; i<params.controls.length;i++)
-			this.keycon.bindActions(params.controls[i]);
-	}
-
-	this.figureObjectArray=[];
-	for (var i = 0, len = this.figures.length; i < len; i++)
-	{
-		var figure={};
-		figure.states=[];
-
-//создание и инициализация массивов состояний
-		 var tempFigureArray=this.figures[i].split(";");
-		 var tempLineArrayToGetLength=tempFigureArray[0].split(",")
-		 var size=Math.max(tempFigureArray.length,tempLineArrayToGetLength.length);
-//заполнение состояний
-		fillState(1);
-		fillState(2);
-		fillState(3);
-		fillState(4);
-//функция заполнения состояний
-		function fillState(stateNo)
+			'GLASS_WIDTH': this.GLASS_WIDTH,
+			'GLASS_HIGHT': this.GLASS_HIGHT,
+			'GLASS_HIGHT_BRICKS': this.GLASS_HIGHT_BRICKS,
+			'GLASS_WIDTH_BRICKS': this.GLASS_WIDTH_BRICKS,
+			'brickWidth': this.brickWidth,
+			'brickhight': this.brickHight,
+			'containers' : params.container
+		})
+		//стейт машина
+		this.stateMachine = new tetrisGameStateMachine;
+		//Массив Стакана
+		this.glassStateArray=[[],[]];
+		//Флаг того что нужна новая фигура
+		this.figureNeeded=true;
+		//Задержка между авто-смещением фигуры вниз
+		this.fall_delta;
+		//Текущее состояние игры
+		this.state="inactive";
+		//объект текущей фигуры
+		this.current_figure={};
+		this.current_figure.location={};
+		//таймер то опускания фигуры
+		this.fall_countdown;
+		//количество очков
+		this.score=0;
+		//заполнение контейнера с очками	
+		this.setScore(this);
+		//массив фигур
+		this.figureObjectArray=[];
+		//Состояние паузы
+		this.is_paused=false;
+		this.keycon= new keyboardController();
+		//получение объекта поля из рендерера (для слушателей)	
+		this.glassObject=this.renderer.getField();
+		this.keycon.attach(this.glassObject);
+		//если params.controls пуст то устанавливаются кнопки по умолчанию, если нет то из него
+		if (params.controls==undefined)
 		{
-			 var state=[[],[]];	
-
-			for (var i1=0; i1<size;i1++){
-				state[i1]=[];
-			}
-
-			for (var j = 0, len1 = tempFigureArray.length; j < len1; j++)
+		//Добавление кнопок в контроллер
+			addKeyToController("left",[37],this.keycon);
+			addKeyToController("right",[39],this.keycon);
+			addKeyToController("up",[38],this.keycon);
+			addKeyToController("down",[40],this.keycon);
+			addKeyToController("space",[32],this.keycon);
+			function addKeyToController(name,keys,keycon)
 			{
-				var tempLineArray=tempFigureArray[j].split(",");
-				for (var k = 0, len2 = tempLineArray.length; k < len2; k++){
-					switch (stateNo)
-						{
-							case 1: state[j][k]=tempLineArray[k]; break;
-							case 2: state[k][len1-j-1]=tempLineArray[k]; break;
-							case 3: state[len1-j-1][len2-k-1]=tempLineArray[k];  break;
-							case 4: state[len2-k-1][j]=tempLineArray[k];  break;
-						}
-				}
+				var key={
+					name: name,
+					keys: keys,
+					active: true
+				};
+				keycon.bindActions(key);
 			}
-			state=state.filter(v=>v!='');	
-			state.rotationCoordX=Math.floor((state[0].length-1)/2);
-			state.rotationCoordY=Math.floor((state[0][0].length-1)/2);
-			figure.states.push(state);
+			//добавление тапов и свайпов
+			addTouchToController("left",[Infinity,200,400,-400],this.keycon);
+			addTouchToController("right",[-200,-Infinity,400,-400],this.keycon);
+			addTouchToController("space",[400,-400,-200,-Infinity],this.keycon);
+			addTouchToController("up",[50,-50, 50,-50],this.keycon);
+			function addTouchToController(name,keys,keycon)
+			{
+				var key={
+					name: name,
+					coords: keys,
+					active: true,
+					type: "touch"
+				};
+				keycon.bindActions(key);
+			}
 		}
-//добавление новых фигур в массив фигур
-		this.figureObjectArray.push(figure);
-	}
-//логические переменные для работы с контроллером
-	this.leftActive=false;
-	this.rightActive=false;
-	this.downActive=false;
-	this.instantFall=false;
-	this.rotate=false;
+		else
+		{
+		//добавление управление из параметров, если они есть		
+			for (var i=0; i<params.controls.length;i++)
+				this.keycon.bindActions(params.controls[i]);
+		}
+		//инициализация массива фигур
+		this.figureObjectArray=[];
+		for (var i = 0, len = this.figures.length; i < len; i++)
+		{
+			var figure={};
+			figure.states=[];
 
-	this.boundGameStep=this.gamestep.bind(this);
-	}
+			//создание и инициализация массивов состояний
+			 var tempFigureArray=this.figures[i].split(";");
+			 var tempLineArrayToGetLength=tempFigureArray[0].split(",")
+			 var size=Math.max(tempFigureArray.length,tempLineArrayToGetLength.length);
+			//заполнение состояний
+			fillState(1);
+			fillState(2);
+			fillState(3);
+			fillState(4);
+			//функция заполнения состояний
+			function fillState(stateNo)
+			{
+				 var state=[[],[]];	
 
+				for (var i1=0; i1<size;i1++){
+					state[i1]=[];
+				}
+
+				for (var j = 0, len1 = tempFigureArray.length; j < len1; j++)
+				{
+					var tempLineArray=tempFigureArray[j].split(",");
+					for (var k = 0, len2 = tempLineArray.length; k < len2; k++){
+						switch (stateNo)
+							{
+								case 1: state[j][k]=tempLineArray[k]; break;
+								case 2: state[k][len1-j-1]=tempLineArray[k]; break;
+								case 3: state[len1-j-1][len2-k-1]=tempLineArray[k];  break;
+								case 4: state[len2-k-1][j]=tempLineArray[k];  break;
+							}
+					}
+				}
+				state=state.filter(v=>v!='');	
+				state.rotationCoordX=Math.floor((state[0].length-1)/2);
+				state.rotationCoordY=Math.floor((state[0][0].length-1)/2);
+				figure.states.push(state);
+			}
+			//добавление новых фигур в массив фигур
+			this.figureObjectArray.push(figure);
+		}
+		//логические переменные для работы с контроллером
+		this.leftActive=false;
+		this.rightActive=false;
+		this.downActive=false;
+		this.instantFall=false;
+		this.rotate=false;
+
+		this.boundGameStep=this.gamestep.bind(this);
+	}
+//запуск слушателей
 	startListeners()
 	{
 		var boundGameStart=this.gamestart.bind(this);
@@ -172,8 +171,8 @@ console.log(params.controls);
 		document.addEventListener("tetrisGameOverEvent",boundGameOver);
 //слушатель на событие паузы
 		document.addEventListener("tetrisGamePauseEvent",boundSetPaused);
-//отрисовка изначального экрана
-	this.renderer.draw(this.glassStateArray, this.stateMachine.getState());
+	//отрисовка изначального экрана
+	this.renderer.draw(0,0,{},this.glassStateArray, this.stateMachine.getState());
 	}
 /*
  ██████╗ ██████╗ ███╗   ██╗███████╗████████╗██████╗ ██╗   ██╗ ██████╗████████╗
@@ -184,18 +183,20 @@ console.log(params.controls);
  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝  ╚═════╝   ╚═╝  
 */ 
 
-
-//начало игры
+	//начало игры
 	gamestart()
 	{
 		this.keycon.enabled=true;
+		//установка статуса на playing. если он уже playing то машина установит resetting		
 		this.stateMachine.setState("playing");
 		var state=this.stateMachine.getState();
+		//обнуление переменных управления
 		this.leftActive=false;
 		this.rightActive=false;
 		this.downActive=false;
 		this.instantFall=false;
 		this.rotate=false;
+
 		if (state=="playing")
 		{
 			var boundActivateListenerActions =activateListenerActions.bind(this);
@@ -208,7 +209,7 @@ console.log(params.controls);
 			this.fall_countdown=0
 			this.state="playing";
 			this.figureNeeded=true;
-	//Слушатели на нажатие и отжатие клавиш		
+			//Слушатели на нажатие и отжатие клавиш		
 			this.glassObject=this.renderer.getField();
 			this.glassObject.addEventListener("controls:activate",function(e) {
 				boundActivateListenerActions(e.detail.action);
@@ -219,7 +220,7 @@ console.log(params.controls);
 			this.glassObject.addEventListener("controls:swipe",function(e) {
 				boundTouchListenerActions(e.detail.action);
 			});
-	//действия на нажатие кнопки
+			//действия на нажатие кнопки
 				function activateListenerActions(action)
 				{
 					switch(action)
@@ -229,7 +230,7 @@ console.log(params.controls);
 					}
 				}
 
-	//действия на отжатие кнопки
+				//действия на отжатие кнопки
 				function deactivateListenerActions(action)
 				{
 					switch(action)
@@ -251,7 +252,7 @@ console.log(params.controls);
 						case "up": this.rotate=true; break;
 					}
 				}
-	//инициализация массива стакана и перерисовка
+			//инициализация массива стакана и перерисовка
 			initialiseGlassArray(this.GLASS_HIGHT_BRICKS,this.GLASS_WIDTH_BRICKS,this);
 			//Функция инициализации массива стакана
 			function initialiseGlassArray(x,y,p){
@@ -264,13 +265,12 @@ console.log(params.controls);
 				}
 			}
 		}
-		this.renderer.draw(this.glassStateArray, this.stateMachine.getState());
-
-			//setTimeout(this.boundGameStep,this.gameStepTimer);
+		//установка интервала для шага игры
 		this.gameStepIntervalId=setInterval(this.boundGameStep,this.gameStepTimer);
 		}
 		else
 		{
+			//перезагрузка в случае нажатия новой игры во время игры			
 			if (state=="resetting")
 			{
 				clearInterval(this.gameStepIntervalId);
@@ -279,43 +279,84 @@ console.log(params.controls);
 			}
 		}
 	}
-//шаг игры
+	//шаг игры
 	gamestep()
 	{	
 		if(this.figureNeeded){this.createFigure(this);}
-		this.renderer.draw(this.glassStateArray, this.stateMachine.getState(),this.score);
 		this.fall_countdown=this.fall_countdown+40;
+		//проверка таймера на падение и падение
 		if ((this.fall_countdown>=this.fall_delta)||((this.fall_countdown>=(this.fall_delta/2))&&(this.downActive)))
 		{
-			this.fall(this);
+			if (this.testFigurePlace(1,0,this.current_figure.state,this))
+			{
+				this.current_figure.location.x++;
+				this.fall_countdown=0;
+				this.checkFilledRows(this);
+			}
+			else
+			{
+				//остановка фигуры в случае если падать некуда
+				this.stopFigure(this);
+			}
 		}
-		if(this.leftActive){this.moveLeft(this); this.leftActive=false;}
-		if(this.rightActive){this.moveRight(this); this.rightActive=false;}
-		if(this.rotate){this.rotateFigure(this); this.rotate=false;}
+		//движение влево
+		if(this.leftActive)
+		{
+			if (this.testFigurePlace(0,-1,this.current_figure.state,this))
+			{
+				this.current_figure.location.y--;
+				this.leftActive=false;
+			}
+		}
+		//движение вправо
+		if(this.rightActive)
+			{
+				if (this.testFigurePlace(0,1,this.current_figure.state,this))
+				{
+					this.current_figure.location.y++;
+					this.rightActive=false;
+				}
+			}
+		//поворот фигуры	
+		if(this.rotate)
+		{
+			this.rotateFigure(this); 
+			this.rotate=false;
+		}
+		//перерисовка
+		this.renderer.draw(this.current_figure.location.x,this.current_figure.location.y, this.current_figure.state, this.glassStateArray, this.stateMachine.getState(),this.score);
 	}
 
 //Генерация фигуры
 	createFigure(currentThis)
 	{
-
-		currentThis.current_figure.figure = currentThis.figureObjectArray[Math.floor(Math.random() * currentThis.figureObjectArray.length)];
-		currentThis.current_figure.location.x=0;
-		currentThis.current_figure.location.y=Math.floor(currentThis.GLASS_WIDTH_BRICKS/2) - Math.floor(currentThis.current_figure.figure.states[0][0].length/2);
-		currentThis.current_figure.stateNumber=0;
-		currentThis.current_figure.state = currentThis.current_figure.figure.states[0];
+		var figure=currentThis.current_figure;
+		figure.figure = currentThis.figureObjectArray[Math.floor(Math.random() * currentThis.figureObjectArray.length)];
+		figure.location.x=0;
+		figure.location.y=Math.floor(currentThis.GLASS_WIDTH_BRICKS/2) - Math.floor(currentThis.current_figure.figure.states[0][0].length/2);
+		figure.stateNumber=0;
+		figure.state = currentThis.current_figure.figure.states[0];
 		currentThis.figureNeeded = false;
 		if (!this.testFigurePlace(0,0,currentThis.current_figure.state,currentThis)){generateGameOverEvent();}
-		for (var i = 0; i < currentThis.current_figure.figure.states[0].length;i++)
-		{
-			for (var j = 0; j < currentThis.current_figure.figure.states[0][0].length;j++)
-				{
-					if (currentThis.glassStateArray[i][j+currentThis.current_figure.location.y]=="3"){
-								generateGameOverEvent();
-							}
-					currentThis.glassStateArray[i][j+currentThis.current_figure.location.y]=currentThis.current_figure.figure.states[0][i][j];
-				}
-		}
 	}
+
+	stopFigure(currentThis)
+	{
+		var currentGlassArray=this.glassStateArray;
+		var figure=currentThis.current_figure;
+		for (var i=0; i<figure.state.length;i++)
+		{
+			for (var j=0; j<figure.state[0].length;j++)
+			{
+				if (figure.state[i][j]=="1")
+				{
+					currentGlassArray[i+figure.location.x][j+figure.location.y]="2";
+				}
+			}
+		}
+		currentThis.figureNeeded=true;
+	}
+
 
 /*
 ███╗   ███╗ ██████╗ ██╗   ██╗███████╗███╗   ███╗███████╗███╗   ██╗████████╗
@@ -349,135 +390,32 @@ console.log(params.controls);
 //поворот фигуры
 	rotateFigure(currentThis)
 	{
-		var gotostate = currentThis.current_figure.stateNumber + 1;
+		var figure=currentThis.current_figure;
+		var gotostate = figure.stateNumber + 1;
 		if (gotostate == 4){gotostate = 0};
 
-		if (currentThis.testFigurePlace(0,0,currentThis.current_figure.figure.states[gotostate],currentThis))
+		if (currentThis.testFigurePlace(0,0,figure.figure.states[gotostate],currentThis))
 		{
-			for (var i=currentThis.current_figure.location.x; i<=currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i++)
-				{
-					for (var j=currentThis.current_figure.location.y; j<=currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j++)
-					{
-						if (currentThis.glassStateArray[i][j]=="1"){currentThis.glassStateArray[i][j]="0";}
-					}
-				}
-			currentThis.current_figure.stateNumber=gotostate;
-			currentThis.current_figure.state=currentThis.current_figure.figure.states[gotostate];
-			for (var i=currentThis.current_figure.location.x; i<currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i++)
-				{
-					for (var j=currentThis.current_figure.location.y; j<currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j++)
-					{
-						if (currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][i-currentThis.current_figure.location.x][j-currentThis.current_figure.location.y]=="1"){currentThis.glassStateArray[i][j]="1";}
-					}
-				}	
+			figure.stateNumber=gotostate;
+			figure.state=figure.figure.states[gotostate];
 		}
-
 	}
 
-//Функция движения влево
-		moveLeft(currentThis)
-		{
-//проверка возможности размещения фигуры
-			if(currentThis.testFigurePlace(0,-1,currentThis.current_figure.state,currentThis))
-//движение влево
-			{
-				for (var i=currentThis.current_figure.location.x; i<=currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i++)
-				{
-					for (var j=currentThis.current_figure.location.y; j<=currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j++)
-						{
-							if (currentThis.glassStateArray[i][j]=="1")
-							{
-								currentThis.glassStateArray[i][j]="0";
-								currentThis.glassStateArray[i][j-1]="1";
-							}
-						}	
-			}	
-			currentThis.current_figure.location.y--;
-			}
+//мгновенное падение
+	instantFallFunc(currentThis)
+	{
+		var figure=currentThis.current_figure;
+		var delta=1;
+		while (currentThis.testFigurePlace(delta,0,currentThis.current_figure.state,currentThis)){delta++}
+		delta--;	
 
-		}
-//Функция движения вправо
-		moveRight(currentThis)
-		{
-//проверка возможности размещения фигуры
-			if(currentThis.testFigurePlace(0,1,currentThis.current_figure.state,currentThis))
-//движение вправо
-			{
-				for (var i=currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i>=currentThis.current_figure.location.x; i--)
-				{
-					for (var j=currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j>=currentThis.current_figure.location.y; j--)
-						{
-							if (currentThis.glassStateArray[i][j]=="1")
-							{
-								currentThis.glassStateArray[i][j]="0";
-								currentThis.glassStateArray[i][j+1]="1";
-							}
-						}	
-			}	
-			currentThis.current_figure.location.y++;
-			}
+		figure.location.x=figure.location.x+delta;
+		currentThis.stopFigure(currentThis);
 
-		}
-//Функция автоматического опускания фигуры по таймеру
-		fall(currentThis)
-		{
-		currentThis.fall_countdown=0;
-//опускание фигуры если это возможно...
-		if (currentThis.testFigurePlace(1,0,currentThis.current_figure.state,currentThis))
-		{
-			for (var i=currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i>=currentThis.current_figure.location.x; i--)
-			{
-				for (var j=currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j>=currentThis.current_figure.location.y; j--)
-					{
-						if (currentThis.glassStateArray[i][j]=="1")
-						{
-							currentThis.glassStateArray[i+1][j]="1";
-							currentThis.glassStateArray[i][j]="0";
-						}
-					}	
-			}
-		} 
-//...смена состояния фигуры и установка флага на создание новой в случае если нет
-		else
-		{
-			currentThis.figureNeeded=true;
-			for (var i=currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i>=currentThis.current_figure.location.x; i--)
-			{
-				for (var j=currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j>=currentThis.current_figure.location.y; j--)
-					{
-						if (currentThis.glassStateArray[i][j]=="1")
-						{
-							currentThis.glassStateArray[i][j]="2";
-						}
-					}	
-			}
-		
-//проверка на заполненные ряды
-			currentThis.checkFilledRows(currentThis);
-			}
-			currentThis.current_figure.location.x++;
-			currentThis.renderer.draw(currentThis.glassStateArray, currentThis.stateMachine.getState(),currentThis.score);
-		}
+		currentThis.figureNeeded=true;
+		currentThis.checkFilledRows(currentThis);
+	}
 
-		instantFallFunc(currentThis)
-		{
-			var delta=1;
-			while (currentThis.testFigurePlace(delta,0,currentThis.current_figure.state,currentThis)){delta++}
-			delta--;	
-			for (var i=currentThis.current_figure.location.x+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber].length; i>=currentThis.current_figure.location.x; i--)
-			{
-				for (var j=currentThis.current_figure.location.y+currentThis.current_figure.figure.states[currentThis.current_figure.stateNumber][0].length; j>=currentThis.current_figure.location.y; j--)
-					{
-						if (currentThis.glassStateArray[i][j]=="1")
-						{
-							currentThis.glassStateArray[i+delta][j]="2";
-							currentThis.glassStateArray[i][j]="0";
-						}
-					}	
-			}
-			currentThis.figureNeeded=true;
-			currentThis.checkFilledRows(currentThis);
-		}
 /*
 ███╗   ███╗ ██████╗ ██╗   ██╗███████╗███╗   ███╗███████╗███╗   ██╗████████╗
 ████╗ ████║██╔═══██╗██║   ██║██╔════╝████╗ ████║██╔════╝████╗  ██║╚══██╔══╝
@@ -486,6 +424,7 @@ console.log(params.controls);
 ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   
 ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝  
 */	
+//конец игры
 	gameOver()
 	{
 		if (this.stateMachine.getState()=="playing")
