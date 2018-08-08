@@ -27,7 +27,8 @@ class Tetris{
 		//запись контейнера с счетом	
 		this.pointContainer = document.getElementsByClassName(params.pointContainer)[0];
 		//инициализация рендерера
-		this.renderer= new CanvasRenderer(
+
+		this.renderer= new PixiRenderer(
 		{
 			'GLASS_WIDTH': this.GLASS_WIDTH,
 			'GLASS_HIGHT': this.GLASS_HIGHT,
@@ -50,6 +51,7 @@ class Tetris{
 		//объект текущей фигуры
 		this.current_figure={};
 		this.current_figure.location={};
+		this.current_figure.prevLoc={};
 		//таймер то опускания фигуры
 		this.fall_countdown;
 		//количество очков
@@ -62,7 +64,7 @@ class Tetris{
 		this.is_paused=false;
 		this.keycon= new keyboardController();
 		//получение объекта поля из рендерера (для слушателей)	
-		this.glassObject=this.renderer.getField();
+		this.glassObject=document.getElementsByClassName(params.container)[0];
 		this.keycon.attach(this.glassObject);
 		//если params.controls пуст то устанавливаются кнопки по умолчанию, если нет то из него
 		if (params.controls==undefined)
@@ -210,7 +212,6 @@ class Tetris{
 			this.state="playing";
 			this.figureNeeded=true;
 			//Слушатели на нажатие и отжатие клавиш		
-			this.glassObject=this.renderer.getField();
 			this.glassObject.addEventListener("controls:activate",function(e) {
 				boundActivateListenerActions(e.detail.action);
 			});
@@ -289,6 +290,7 @@ class Tetris{
 		{
 			if (this.testFigurePlace(1,0,this.current_figure.state,this))
 			{
+				saveLastLoc(this);
 				this.current_figure.location.x++;
 				this.fall_countdown=0;
 				this.checkFilledRows(this);
@@ -304,6 +306,7 @@ class Tetris{
 		{
 			if (this.testFigurePlace(0,-1,this.current_figure.state,this))
 			{
+				saveLastLoc(this);
 				this.current_figure.location.y--;
 				this.leftActive=false;
 			}
@@ -313,10 +316,12 @@ class Tetris{
 			{
 				if (this.testFigurePlace(0,1,this.current_figure.state,this))
 				{
+					saveLastLoc(this);
 					this.current_figure.location.y++;
 					this.rightActive=false;
 				}
 			}
+
 		//поворот фигуры	
 		if(this.rotate)
 		{
@@ -325,6 +330,13 @@ class Tetris{
 		}
 		//перерисовка
 		this.renderer.draw(this.current_figure.location.x,this.current_figure.location.y, this.current_figure.state, this.glassStateArray, this.stateMachine.getState(),this.score);
+
+		function saveLastLoc(currentThis)
+		{
+			var figure=currentThis.current_figure;
+			figure.prevLoc.x=figure.location.x;
+			figure.prevLoc.y=figure.location.y;
+		}
 	}
 
 //Генерация фигуры
@@ -336,6 +348,8 @@ class Tetris{
 		figure.location.y=Math.floor(currentThis.GLASS_WIDTH_BRICKS/2) - Math.floor(currentThis.current_figure.figure.states[0][0].length/2);
 		figure.stateNumber=0;
 		figure.state = currentThis.current_figure.figure.states[0];
+		figure.prevLoc.x=0;
+		figure.prevLoc.x=Math.floor(currentThis.GLASS_WIDTH_BRICKS/2) - Math.floor(currentThis.current_figure.figure.states[0][0].length/2);;
 		currentThis.figureNeeded = false;
 		if (!this.testFigurePlace(0,0,currentThis.current_figure.state,currentThis)){generateGameOverEvent();}
 	}
@@ -408,6 +422,7 @@ class Tetris{
 		var delta=1;
 		while (currentThis.testFigurePlace(delta,0,currentThis.current_figure.state,currentThis)){delta++}
 		delta--;	
+		currentThis.renderer.animateInstantFall(figure.location.x,figure.location.y,figure.state,delta);
 
 		figure.location.x=figure.location.x+delta;
 		currentThis.stopFigure(currentThis);
@@ -432,6 +447,7 @@ class Tetris{
 			this.stateMachine.setState("gameover");
 			this.keycon.enabled=false;
 			clearInterval(this.gameStepIntervalId);
+			this.renderer.animateGameover();
 		}
 	}
 
@@ -476,6 +492,7 @@ class Tetris{
 			if (rowFlag)
 			{
 				dragDown(i);
+				currentThis.renderer.animateRemoval(i);
 				currentThis.fall_delta=currentThis.fall_delta-25;
 				currentThis.score++;
 				currentThis.setScore(currentThis);

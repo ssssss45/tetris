@@ -178,7 +178,7 @@ class keyboardController
 		{
 			this.target=target;
 			var elem=document.querySelector("#"+target);
-			thisTargetIsString = true;
+			this.TargetIsString = true;
 		}
 		else
 		{

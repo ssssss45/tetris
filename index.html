@@ -6,7 +6,9 @@
 	<script src="js/tetris_class.js"></script>
 	<script src="js/canvasRenderer.js"></script>
 	<script src="js/tetris_statemachine.js"></script>
-
+	<script src="js/pixiRenderer.js"></script>
+	<script src="js/pixi.min.js"></script>
+	<script src="js/pixi-particles.js"></script>
 </head>
 <body>
 	
@@ -23,7 +25,8 @@
 				'GLASS_HIGHT': 500,
 				'GLASS_HIGHT_BRICKS': 25,
 				'GLASS_WIDTH_BRICKS': 10,
-				'FIGURES' : ["1,1,0;0,1,1","0,1,1;1,1,0","1,1;1,1","1,0,0;1,1,1","0,0,1;1,1,1","0,1,0;1,1,1","1,1,1,1","1,1,1;1,0,1","0,1,0;1,1,1;0,1,0"],	
+				//'FIGURES' : ["1,1,0;0,1,1","0,1,1;1,1,0","1,1;1,1","1,0,0;1,1,1","0,0,1;1,1,1","0,1,0;1,1,1","1,1,1,1","1,1,1;1,0,1","0,1,0;1,1,1;0,1,0"],	
+				'FIGURES' : ["1,1,1,1"],
 				'renderer': "CanvasRenderer",
 				'pointContainer':"tetrisPoints",
 				'container': "tetrisGame",
