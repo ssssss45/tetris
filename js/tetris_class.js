@@ -158,7 +158,6 @@ class Tetris{
 		this.downActive=false;
 		this.instantFall=false;
 		this.rotate=false;
-
 		this.boundGameStep=this.gamestep.bind(this);
 	}
 //запуск слушателей
@@ -167,12 +166,21 @@ class Tetris{
 		var boundGameStart=this.gamestart.bind(this);
 		var boundSetPaused=this.setPaused.bind(this);
 		var boundGameOver=this.gameOver.bind(this);
-//слушатель на событие начала игры
+		var boundActivateListenerActions =this.activateListenerActions.bind(this);
+		var boundDeactivateListenerActions =this.deactivateListenerActions.bind(this);
+		var boundTouchListenerActions =this.touchListenerActions.bind(this);
+		//слушатель на событие начала игры
 		document.addEventListener("tetrisGameStartEvent",boundGameStart);
-//слушатель на событие конца игры
+		//слушатель на событие конца игры
 		document.addEventListener("tetrisGameOverEvent",boundGameOver);
-//слушатель на событие паузы
+		//слушатель на событие паузы
 		document.addEventListener("tetrisGamePauseEvent",boundSetPaused);
+		//Слушатели на нажатие и отжатие клавиш	
+		this.glassObject.addEventListener("controls:activate",
+			boundActivateListenerActions);
+		this.glassObject.addEventListener("controls:deactivate",
+			boundDeactivateListenerActions);
+		this.glassObject.addEventListener("controls:swipe",				boundTouchListenerActions);
 	//отрисовка изначального экрана
 	this.renderer.draw(0,0,{},this.glassStateArray, this.stateMachine.getState());
 	}
@@ -187,7 +195,8 @@ class Tetris{
 
 	//начало игры
 	gamestart()
-	{
+	{	
+		clearInterval(this.gameStepIntervalId);
 		this.keycon.enabled=true;
 		//установка статуса на playing. если он уже playing то машина установит resetting		
 		this.stateMachine.setState("playing");
@@ -201,9 +210,6 @@ class Tetris{
 
 		if (state=="playing")
 		{
-			var boundActivateListenerActions =activateListenerActions.bind(this);
-			var boundDeactivateListenerActions =deactivateListenerActions.bind(this);
-			var boundTouchListenerActions =touchListenerActions.bind(this);
 			this.score=0;
 			this.setScore(this);
 			this.is_paused=false;
@@ -211,48 +217,6 @@ class Tetris{
 			this.fall_countdown=0
 			this.state="playing";
 			this.figureNeeded=true;
-			//Слушатели на нажатие и отжатие клавиш		
-			this.glassObject.addEventListener("controls:activate",function(e) {
-				boundActivateListenerActions(e.detail.action);
-			});
-			this.glassObject.addEventListener("controls:deactivate",function(e) {
-				boundDeactivateListenerActions(e.detail.action);
-			});
-			this.glassObject.addEventListener("controls:swipe",function(e) {
-				boundTouchListenerActions(e.detail.action);
-			});
-			//действия на нажатие кнопки
-				function activateListenerActions(action)
-				{
-					switch(action)
-					{
-						case "down": this.downActive=true; break;
-						case "space": if(this.stateMachine.getState()!="paused"){this.instantFallFunc(this)}break;
-					}
-				}
-
-				//действия на отжатие кнопки
-				function deactivateListenerActions(action)
-				{
-					switch(action)
-					{
-						case "left": this.leftActive=true; break;
-						case "right": this.rightActive=true; break;
-						case "down": this.downActive=false; break;
-						case "up": this.rotate=true; break;
-					}
-				}
-				function touchListenerActions(action)
-				{
-					switch(action)
-					{
-
-						case "left": this.leftActive=true; break;
-						case "right": this.rightActive=true; break;
-						case "space": if(this.stateMachine.getState()!="paused"){ this.instantFall=true; this.instantFallFunc(this)}break;
-						case "up": this.rotate=true; break;
-					}
-				}
 			//инициализация массива стакана и перерисовка
 			initialiseGlassArray(this.GLASS_HIGHT_BRICKS,this.GLASS_WIDTH_BRICKS,this);
 			//Функция инициализации массива стакана
@@ -279,7 +243,41 @@ class Tetris{
 				this.gamestart();
 			}
 		}
+
 	}
+
+	//действия на нажатие кнопки
+	activateListenerActions(event)
+	{
+		switch(event.detail.action)
+		{
+			case "down": this.downActive=true; break;
+			case "space": if(this.stateMachine.getState()!="paused"){this.instantFallFunc(this)}break;
+		}
+	}
+
+	//действия на отжатие кнопки
+	deactivateListenerActions(event)
+	{
+		switch(event.detail.action)
+		{
+			case "left": this.leftActive=true; break;
+			case "right": this.rightActive=true; break;
+			case "down": this.downActive=false; break;
+			case "up": this.rotate=true; break;
+		}
+	}
+	touchListenerActions(event)
+	{
+		switch(event.detail.action)
+		{
+			case "left": this.leftActive=true; break;
+			case "right": this.rightActive=true; break;
+			case "space": if(this.stateMachine.getState()!="paused"){ this.instantFall=true; this.instantFallFunc(this)}break;
+			case "up": this.rotate=true; break;
+		}
+	}
+
 	//шаг игры
 	gamestep()
 	{	
@@ -356,6 +354,7 @@ class Tetris{
 
 	stopFigure(currentThis)
 	{
+		console.log("stoped");
 		var currentGlassArray=this.glassStateArray;
 		var figure=currentThis.current_figure;
 		for (var i=0; i<figure.state.length;i++)
@@ -413,11 +412,14 @@ class Tetris{
 			figure.stateNumber=gotostate;
 			figure.state=figure.figure.states[gotostate];
 		}
+		currentThis.renderer.playSound("turn");
 	}
 
 //мгновенное падение
 	instantFallFunc(currentThis)
 	{
+		console.log("instant");
+		currentThis.fall_countdown=0;
 		var figure=currentThis.current_figure;
 		var delta=1;
 		while (currentThis.testFigurePlace(delta,0,currentThis.current_figure.state,currentThis)){delta++}
@@ -491,8 +493,10 @@ class Tetris{
 			}
 			if (rowFlag)
 			{
+				console.log(i);
 				dragDown(i);
 				currentThis.renderer.animateRemoval(i);
+				currentThis.renderer.playSound("remove");
 				currentThis.fall_delta=currentThis.fall_delta-25;
 				currentThis.score++;
 				currentThis.setScore(currentThis);

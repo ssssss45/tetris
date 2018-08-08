@@ -32,7 +32,9 @@ class PixiRenderer
 			.add([
 				"img/block_blue.png",
 				"img/block_yellow.png",
-				"img/block_red.png"
+				"img/block_red.png",
+				"sounds/turn.mp3",
+				"sounds/remove.mp3"
 				])
 			.load(boundSetup)
 	}
@@ -150,7 +152,6 @@ class PixiRenderer
 					brick.height=this.brickHight;
 					brick.y=(figureX+i)*this.brickHight;
 					brick.x=(figureY+j)*this.brickWidth;
-					console.log(figureX+i+delta+1);
 					if(figureX+i+delta+1<this.GLASS_HIGHT_BRICKS)
 					{
 						if(this.brickArray[figureX+i+delta+1][j+figureY].visible)
@@ -187,7 +188,6 @@ class PixiRenderer
 			}
 			if (repeats==0)
 			{
-				console.log(listOfEmits);
 				for (var i=0; i<listOfBricks.length;i++)
 				{
 					if(listOfEmits[i]==true){
@@ -288,5 +288,11 @@ class PixiRenderer
 		);
 		emit.emit=true;
 		emit.playOnceAndDestroy();	
+	}
+
+	playSound(sound)
+	{
+		var sound = PIXI.sound.Sound.from(PIXI.loader.resources["sounds/"+sound+".mp3"]);
+		sound.play();
 	}
 }
