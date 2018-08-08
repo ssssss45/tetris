@@ -9,23 +9,72 @@ class PixiRenderer
 		this.brickWidth= params.brickWidth || Math.floor(this.GLASS_WIDTH/this.GLASS_WIDTH_BRICKS);
 		this.brickHight= params.brickHight || Math.floor(this.GLASS_HIGHT/this.GLASS_HIGHT_BRICKS);
 		this.containers = document.getElementsByClassName(params.containers);
+		//размер боковой секции
+		this.GLASS_PREVIEW_SECTION_WIDTH=params.GLASS_PREVIEW_SECTION_WIDTH;
 		//создание стакана в PIXI
 		this.container=this.containers[0];
-		this.glass = new PIXI.Application({width: params.GLASS_WIDTH, height: params.GLASS_HIGHT});
+		this.glass = new PIXI.Application({width: params.GLASS_WIDTH+params.GLASS_PREVIEW_SECTION_WIDTH, height: params.GLASS_HIGHT});
 		this.container.appendChild(this.glass.view);
 		//массив спрайтов
 		this.brickArray=[[],[]];
-		this.glass.renderer.backgroundColor = 0x009900;
+		this.glass.renderer.backgroundColor = 0x969696;//0x009900;
 		//контейнер эмиттеров
 		this.emitterContainer = new PIXI.Container();
 		this.emitterContainer.height = this.GLASS_HIGHT;
 		this.emitterContainer.width = this.GLASS_WIDTH;
+		//массив блоков для отображения следующей фигуры
+		this.nextFigureBlocks=[];
+
+		//Состояние звука
+		this.soundOn=true;
 		
-		//переменная для очистки пр геймовере
+		//переменная для очистки при геймовере
 		this.destroyLineNumber=0;
 
 		this.boundEmitAtPoint=this.emitAtPoint.bind(this);
+		//текст
+		this.text=new PIXI.Text('TETRIS',
+			{
+				fontFamily : 'Courier New', 
+				fontSize: Math.floor(this.GLASS_HIGHT/7), 
+				fill : 0x000000, 
+				align : 'center',
+				"dropShadow": true,
+				"dropShadowDistance": 10,
+				"dropShadowAlpha": 0.2
+			});
+		this.glass.stage.addChild(this.text);
 
+		//текст для секции следующей фигуры
+		this.nextFiguretext=new PIXI.Text('Следующая\nфигура:',
+			{
+				fontFamily : 'Courier New', 
+				fontSize: Math.floor(this.GLASS_HIGHT/30), 
+				fill : 0x000000, 
+				align : 'right',
+				"dropShadow": true,
+				"dropShadowDistance": 10,
+				"dropShadowAlpha": 0.2,
+			});
+		this.nextFiguretext.x=this.GLASS_WIDTH+6;
+		this.nextFiguretext.y=Math.floor(this.GLASS_HIGHT/3*2);
+		this.glass.stage.addChild(this.nextFiguretext);
+
+		//разделитель
+		this.line = new PIXI.Graphics();
+		this.line.lineStyle(4, 0xFFFFFF, 1);
+		this.line.moveTo(this.GLASS_WIDTH+2,0);
+		this.line.lineTo(this.GLASS_WIDTH+2, this.GLASS_HIGHT);
+		this.glass.stage.addChild(this.line);
+
+		//поле для отрисовки следующей фигуры
+		this.previewRectangle = new PIXI.Graphics();
+		this.previewRectangle.beginFill(0xFFFFFF);
+		this.previewRectangle.drawRect(0, 0, this.GLASS_PREVIEW_SECTION_WIDTH-10, this.GLASS_PREVIEW_SECTION_WIDTH-10);
+		this.previewRectangle.endFill();
+		this.previewRectangle.x = this.GLASS_WIDTH+6;
+		this.previewRectangle.y = Math.floor(this.GLASS_HIGHT/3*2)+40;
+		this.glass.stage.addChild(this.previewRectangle);
 
 		var boundSetup = this.setup.bind(this);
 		PIXI.loader
@@ -34,9 +83,23 @@ class PixiRenderer
 				"img/block_yellow.png",
 				"img/block_red.png",
 				"sounds/turn.mp3",
-				"sounds/remove.mp3"
+				"sounds/remove.mp3",
+				"sounds/gameover.mp3",
+				"sounds/land.mp3",
+				"sounds/button.mp3"
 				])
 			.load(boundSetup)
+
+		//слушатель на отключение звука
+		var boundChangeSoundState=this.changeSoundState.bind(this);
+		document.addEventListener("tetrisSoundStateEvent",
+		boundChangeSoundState);
+		//слушатели на события нажатия кнопок (для звуков)
+		this.boundPlayButtonSound=this.playButtonSound.bind(this);
+		document.addEventListener("tetrisGameStartEvent",
+		this.boundPlayButtonSound);
+		document.addEventListener("tetrisGamePauseEvent",
+		this.boundPlayButtonSound);
 	}
 	//заполнение стакана спрайтами
 	setup()
@@ -60,8 +123,15 @@ class PixiRenderer
 	//отрисовка поля
 	draw(figureX,figureY,figure,glassStateArray,state,points)
 	{
+		if (state=="inactive")
+		{
+			this.text.fontSize=84;
+			this.text.visible=true;
+			this.text.text="TETRIS";
+		}
 		if(state=="playing")
 		{
+			this.text.visible=false;
 			for (var i = 0; i < this.GLASS_HIGHT_BRICKS; i++)
 			{
 				for (var j = 0; j < this.GLASS_WIDTH_BRICKS; j++)
@@ -91,6 +161,38 @@ class PixiRenderer
 						};
 					};
 				}
+			}
+		}
+	}
+
+	//отрисовка следующей фигуры
+	drawNextFigure(figure)
+	{
+		for (var i=0;i<this.nextFigureBlocks.length;i++)
+		{
+			this.nextFigureBlocks[i].destroy();
+		}
+		this.nextFigureBlock=[];
+		var drawAtX=this.previewRectangle.x+5;
+		var drawAtY=this.previewRectangle.y+5;
+		var brickHight=Math.floor((this.previewRectangle.height-10)/figure.length);
+		var brickWidth=Math.floor((this.previewRectangle.width-10)/figure[0].length);
+		var brickSquareSize=Math.min(brickHight,brickWidth);
+		for (var i=0;i<figure.length;i++)
+		{
+			for (var j=0;j<figure[0].length;j++)	
+			{
+				if (figure[i][j]=="1")
+				{
+					var brick=new PIXI.Sprite(PIXI.loader.resources["img/block_blue.png"].texture);
+					brick.width=brickSquareSize;
+					brick.height=brickSquareSize;
+					brick.y=drawAtY+i*brickSquareSize;
+					brick.x=drawAtX+j*brickSquareSize;
+					this.glass.stage.addChild(brick);
+					this.nextFigureBlocks.push(brick);	
+				}
+				
 			}
 		}
 	}
@@ -191,7 +293,7 @@ class PixiRenderer
 				for (var i=0; i<listOfBricks.length;i++)
 				{
 					if(listOfEmits[i]==true){
-						this.boundEmitAtPoint(listOfBricks[i].x+Math.floor(this.brickWidth/2),listOfBricks[i].y+this.brickHight,"img/block_red.png");
+						this.boundEmitAtPoint(listOfBricks[i].x+Math.floor(this.brickWidth/2),listOfBricks[i].y+this.brickHight,"img/block_yellow.png");
 						}
 					listOfBricks[i].destroy();
 				}
@@ -200,17 +302,19 @@ class PixiRenderer
 	}
 
 	//анимация конца игры
-	animateGameover()
+	animateGameover(score)
 	{	
 		var boundDestroyLine = destroyLine.bind(this);
 		this.destroyLineNumber=0;
 		setTimeout(boundDestroyLine,30);
-
+		this.text.visible=true;
+		this.text.scale.x=0.38;
+		this.text.scale.y=0.38;
+		this.text.alpha=0;
+		this.text.text="Игра окончена! \n Ваш счет: "+score+" очков";
 		function destroyLine()
 		{
 			var i=this.destroyLineNumber;
-			console.log(this.brickArray);
-			console.log(i);
 			for (var j=0; j<this.GLASS_WIDTH_BRICKS;j++)
 			{
 				if (this.brickArray[i][j].visible)
@@ -222,6 +326,7 @@ class PixiRenderer
 			this.destroyLineNumber++;
 			if (this.destroyLineNumber<this.GLASS_HIGHT_BRICKS)
 			{
+				this.text.alpha=this.text.alpha+1/this.GLASS_HIGHT_BRICKS;
 				setTimeout(boundDestroyLine,60);
 			}
 		}
@@ -292,7 +397,21 @@ class PixiRenderer
 
 	playSound(sound)
 	{
-		var sound = PIXI.sound.Sound.from(PIXI.loader.resources["sounds/"+sound+".mp3"]);
-		sound.play();
+		if (this.soundOn)
+		{
+			var sound = PIXI.sound.Sound.from(PIXI.loader.resources["sounds/"+sound+".mp3"]);
+			sound.play();	
+		}
+	}
+
+	changeSoundState()
+	{
+		this.soundOn=!this.soundOn;
+		this.playSound("button");
+	}
+
+	playButtonSound()
+	{
+		this.playSound("button");
 	}
 }
