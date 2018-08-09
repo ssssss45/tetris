@@ -1,5 +1,14 @@
 class PixiRenderer
 {
+/*
+ ██████╗ ██████╗ ███╗   ██╗███████╗████████╗██████╗ ██╗   ██╗ ██████╗████████╗
+██╔════╝██╔═══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║   ██║██╔════╝╚══██╔══╝
+██║     ██║   ██║██╔██╗ ██║███████╗   ██║   ██████╔╝██║   ██║██║        ██║   
+██║     ██║   ██║██║╚██╗██║╚════██║   ██║   ██╔══██╗██║   ██║██║        ██║   
+╚██████╗╚██████╔╝██║ ╚████║███████║   ██║   ██║  ██║╚██████╔╝╚██████╗   ██║   
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝  ╚═════╝   ╚═╝   
+                                                                              
+	*/
 	constructor(params)	
 	{
 		this.GLASS_WIDTH= params.GLASS_WIDTH || 360;
@@ -26,6 +35,8 @@ class PixiRenderer
 		this.nextFigureBlocks=[];
 		//контейнер с текущей фигурой 
 		this.drawCurrentFigureContainer;
+		//контейнер с сеткой
+		this.netContainer = new PIXI.Container();
 		//id интервала опускания текущей фигуры
 		this.currentFigureIntervalId=[];
 		//скорость опускания контейнера текущей фигуры
@@ -80,6 +91,25 @@ class PixiRenderer
 		this.scoreText.x=this.GLASS_WIDTH+6;
 		this.scoreText.y=Math.floor(this.GLASS_HIGHT/5*2);
 		this.glass.stage.addChild(this.scoreText);
+		//заполнение контейнера с сеткой
+		for (var i=0; i < this.GLASS_WIDTH_BRICKS; i++)
+		{
+			var line = new PIXI.Graphics();
+			line.lineStyle(1, 0xFFFFFF, 1);
+			line.moveTo(i*this.brickWidth,0);
+			line.lineTo(i*this.brickWidth,this.GLASS_HIGHT);
+			this.netContainer.addChild(line);
+		}
+		for (var i=0; i < this.GLASS_HIGHT_BRICKS; i++)
+		{
+			var line = new PIXI.Graphics();
+			line.lineStyle(1, 0xFFFFFF, 1);
+			line.moveTo(0,i*this.brickHight);
+			line.lineTo(this.GLASS_WIDTH,i*this.brickHight);
+			this.netContainer.addChild(line);
+		}	
+		this.glass.stage.addChild(this.netContainer);
+		this.netContainer.alpha=0;
 
 		//разделитель
 		this.line = new PIXI.Graphics();
@@ -122,8 +152,17 @@ class PixiRenderer
 		document.addEventListener("tetrisGamePauseEvent",
 		this.boundPlayButtonSound);
 
+		this.boundPutCurrentFigure=this.putCurrentFigure.bind(this);
 		this.boundAnimateCurrentFigure= this.animateCurrentFigure.bind(this);
 	}
+/*
+███████╗███████╗████████╗██╗   ██╗██████╗ 
+██╔════╝██╔════╝╚══██╔══╝██║   ██║██╔══██╗
+███████╗█████╗     ██║   ██║   ██║██████╔╝
+╚════██║██╔══╝     ██║   ██║   ██║██╔═══╝ 
+███████║███████╗   ██║   ╚██████╔╝██║     
+╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝    
+*/
 	//заполнение стакана спрайтами
 	setup()
 	{
@@ -211,21 +250,7 @@ class PixiRenderer
 		this.drawCurrentFigureContainer = new PIXI.Container();
 		this.drawCurrentFigureContainer.height = figure.length;
 		this.drawCurrentFigureContainer.width = figure[0].length;
-		for (var i = 0; i <figure.length; i++)
-		{
-			for (var j = 0; j <  figure[0].length; j++)
-			{
-				if(figure[i][j]=="1")
-				{	
-					var brick=new PIXI.Sprite(PIXI.loader.resources["img/block_red.png"].texture);
-					brick.width=this.brickWidth;
-					brick.height=this.brickHight;
-					brick.y=i*this.brickHight;
-					brick.x=j*this.brickWidth;
-					this.drawCurrentFigureContainer.addChild(brick);
-				};
-			};
-		}
+		this.boundPutCurrentFigure(figure);
 		this.currentFigureSpeed=20;
 		this.drawCurrentFigureContainer.x=y*this.brickWidth;
 		this.drawCurrentFigureContainer.y=(x-1)*this.brickHight;
@@ -241,17 +266,15 @@ class PixiRenderer
 	//ускорение при нажатии кнопки вниз и замедление при отжатии
 	currentFigureAccelerate(toAccelerate)
 	{
-			this.currentFigureAccelerationOn=toAccelerate;
+		this.currentFigureAccelerationOn=toAccelerate;
 	}
-
-	//поворот фигуры
-	rotateFigure(figure)
+	//отрисовка фигуры
+	putCurrentFigure(figure)
 	{
-		this.drawCurrentFigureContainer.removeChildren();
-
+		var param2=figure[0].length;
 		for (var i = 0; i <figure.length; i++)
 		{
-			for (var j = 0; j <  figure[0].length; j++)
+			for (var j = 0; j <  param2; j++)
 			{
 				if(figure[i][j]=="1")
 				{	
@@ -264,6 +287,13 @@ class PixiRenderer
 				};
 			};
 		}
+	}
+
+	//поворот фигуры
+	rotateFigure(figure)
+	{
+		this.drawCurrentFigureContainer.removeChildren();
+		this.boundPutCurrentFigure(figure);
 	}
 
 	//удаление текущей фигуры (при падении)
@@ -427,14 +457,13 @@ class PixiRenderer
 		}
 	}
 /*
-██╗   ███████╗ █████╗ ██╗     ██╗     
-██║   ██╔════╝██╔══██╗██║     ██║     
-██║   █████╗  ███████║██║     ██║     
-██║   ██╔══╝  ██╔══██║██║     ██║     
-██║██╗██║     ██║  ██║███████╗███████╗
-╚═╝╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
+██╗     ███████╗ █████╗ ██╗     ██╗     
+██║     ██╔════╝██╔══██╗██║     ██║     
+██║     █████╗  ███████║██║     ██║     
+██║     ██╔══╝  ██╔══██║██║     ██║     
+██║ ██╗ ██║     ██║  ██║███████╗███████╗
+╚═╝ ╚═╝ ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
  */                                    
-
 	//анимация мгновенного падения
 	animateInstantFall(figureX,figureY,figure,delta)
 	{
@@ -639,7 +668,15 @@ class PixiRenderer
 		emit.emit=true;
 		emit.playOnceAndDestroy();	
 	}
+/*
+███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ███████╗
+██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗██╔════╝
+███████╗██║   ██║██║   ██║██╔██╗ ██║██║  ██║███████╗
+╚════██║██║   ██║██║   ██║██║╚██╗██║██║  ██║╚════██║
+███████║╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝███████║
+╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝
 
+*/
 	playSound(sound)
 	{
 		if (this.soundOn)
@@ -659,6 +696,48 @@ class PixiRenderer
 	{
 		this.playSound("button");
 	}
+/*
+███╗   ██╗███████╗████████╗
+████╗  ██║██╔════╝╚══██╔══╝
+██╔██╗ ██║█████╗     ██║   
+██║╚██╗██║██╔══╝     ██║   
+██║ ╚████║███████╗   ██║   
+╚═╝  ╚═══╝╚══════╝   ╚═╝  
+*/
+	netAppear()
+	{
+		this.netContainer.alpha=0;
+		var repeats=20;
+		var boundAnimate = animate.bind(this);
+		setTimeout(boundAnimate,30);
+		function animate()
+		{
+			this.netContainer.alpha=this.netContainer.alpha+0.05;
+			repeats--;
+			if (repeats>0)
+			{
+				setTimeout(boundAnimate,30);
+			}
+		}
+	}
+
+	netDisappear()
+	{
+		this.netContainer.alpha=1;
+		var repeats=20;
+		var boundAnimate = animate.bind(this);
+		setTimeout(boundAnimate,30);
+		function animate()
+		{
+			this.netContainer.alpha=this.netContainer.alpha-0.05;
+			repeats--;
+			if (repeats>0)
+			{
+				setTimeout(boundAnimate,30);
+			}
+		}
+	}
+
 }
 function randomIntFromInterval(min,max)
 {
