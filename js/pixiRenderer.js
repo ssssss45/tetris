@@ -49,7 +49,7 @@ class PixiRenderer
 		this.nextFiguretext=new PIXI.Text('Следующая\nфигура:',
 			{
 				fontFamily : 'Courier New', 
-				fontSize: Math.floor(this.GLASS_HIGHT/30), 
+				fontSize: Math.floor(this.GLASS_PREVIEW_SECTION_WIDTH/6), 
 				fill : 0x000000, 
 				align : 'right',
 				"dropShadow": true,
@@ -277,12 +277,22 @@ class PixiRenderer
 
 		var boundAnimate = animate.bind(this);
 		setTimeout(boundAnimate,8);
+		var temp=0;
 		function animate()
 		{
 			for (var i=0; i<listOfBricks.length;i++)
 			{
 				listOfBricks[i].y= listOfBricks[i].y+speed;
 			}	
+			//прыжки блоков (пока не работает)
+			for (var i = 0; i <this.GLASS_HIGHT_BRICKS; i++)
+			{
+				for (var j = 0; j <  this.GLASS_WIDTH_BRICKS; j++)
+				{
+					this.brickArray[i][j].y=this.brickArray[i][j].y-10+repeats;	
+					
+				};
+			}
 			repeats--;
 			if (repeats!=0)
 			{
@@ -290,10 +300,19 @@ class PixiRenderer
 			}
 			if (repeats==0)
 			{
+				console.log(temp);
+				for (var i = 0; i <this.GLASS_HIGHT_BRICKS; i++)
+				{
+					for (var j = 0; j <  this.GLASS_WIDTH_BRICKS; j++)
+					{
+						this.brickArray[i][j].y=this.brickArray[i][j].y-10;	
+					};
+				}
 				for (var i=0; i<listOfBricks.length;i++)
 				{
+
 					if(listOfEmits[i]==true){
-						this.boundEmitAtPoint(listOfBricks[i].x+Math.floor(this.brickWidth/2),listOfBricks[i].y+this.brickHight,"img/block_yellow.png");
+						this.boundEmitAtPoint(listOfBricks[i].x+Math.floor(this.brickWidth/2),listOfBricks[i].y+this.brickHight,"img/block_yellow.png",0.001);
 						}
 					listOfBricks[i].destroy();
 				}
@@ -320,7 +339,7 @@ class PixiRenderer
 				if (this.brickArray[i][j].visible)
 				{
 					this.brickArray[i][j].visible=false;
-					this.boundEmitAtPoint(j*this.brickWidth+Math.floor(this.brickWidth/2),i*this.brickHight+Math.floor(this.brickHight/2),"img/block_blue.png");
+					this.boundEmitAtPoint(j*this.brickWidth+Math.floor(this.brickWidth/2),i*this.brickHight+Math.floor(this.brickHight/2),"img/block_blue.png",0.01);
 				}
 			}
 			this.destroyLineNumber++;
@@ -332,7 +351,7 @@ class PixiRenderer
 		}
 	}
 
-	emitAtPoint(x,y,pic)
+	emitAtPoint(x,y,pic,frequency)
 	{
 		var emit=new PIXI.particles.Emitter(
 			this.emitterContainer,
@@ -375,7 +394,7 @@ class PixiRenderer
 					"max": 0.3
 				},
 				"blendMode": "normal",
-				"frequency": 0.001,
+				"frequency": frequency,
 				"emitterLifetime": 0.2,
 				"maxParticles": 100,
 				"pos": {
