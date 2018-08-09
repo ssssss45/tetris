@@ -243,6 +243,7 @@ class Tetris{
 			//перезагрузка в случае нажатия новой игры во время игры			
 			if (state=="resetting")
 			{
+				this.renderer.destroyCurrentFigure(true);
 				clearInterval(this.gameStepIntervalId);
 				this.stateMachine.setState("inactive");
 				this.gamestart();
@@ -293,7 +294,6 @@ class Tetris{
 		{
 			if (this.testFigurePlace(1,0,this.current_figure.state,this))
 			{
-				saveLastLoc(this);
 				this.current_figure.location.x++;
 				this.fall_countdown=0;
 				this.checkFilledRows(this);
@@ -309,21 +309,23 @@ class Tetris{
 		{
 			if (this.testFigurePlace(0,-1,this.current_figure.state,this))
 			{
-				saveLastLoc(this);
+				this.renderer.shiftCurrentFigure(-1);
 				this.current_figure.location.y--;
 				this.leftActive=false;
 			}
 		}
 		//движение вправо
 		if(this.rightActive)
+		{
+			if (this.testFigurePlace(0,1,this.current_figure.state,this))
 			{
-				if (this.testFigurePlace(0,1,this.current_figure.state,this))
-				{
-					saveLastLoc(this);
-					this.current_figure.location.y++;
-					this.rightActive=false;
-				}
+				this.renderer.shiftCurrentFigure(1);
+				this.current_figure.location.y++;
+				this.rightActive=false;
 			}
+		}
+
+		this.renderer.currentFigureAccelerate(this.downActive);
 
 		//поворот фигуры	
 		if(this.rotate)
@@ -362,7 +364,12 @@ class Tetris{
 		}
 		else
 		{
-			if (!this.testFigurePlace(0,0,figure.state,currentThis)){generateGameOverEvent();}
+			if (!this.testFigurePlace(0,0,currentThis.current_figure.state,currentThis)){generateGameOverEvent();}
+			else
+			{
+				var realSpeed=Math.ceil(currentThis.fall_delta/40)*40;
+				currentThis.renderer.drawCurrentFigure(currentThis.current_figure.state,currentThis.current_figure.location.x, currentThis.current_figure.location.y,realSpeed);
+			}
 		}
 		currentThis.renderer.drawNextFigure(figure.state);
 	}
@@ -381,8 +388,10 @@ class Tetris{
 				}
 			}
 		}
+		currentThis.fall_countdown=0;
 		currentThis.figureNeeded=true;
 		currentThis.renderer.playSound("land");
+		currentThis.renderer.destroyCurrentFigure();
 	}
 
 
@@ -427,8 +436,9 @@ class Tetris{
 		{
 			figure.stateNumber=gotostate;
 			figure.state=figure.figure.states[gotostate];
+			currentThis.renderer.playSound("turn");
+			currentThis.renderer.rotateFigure(figure.state);
 		}
-		currentThis.renderer.playSound("turn");
 	}
 
 //мгновенное падение
@@ -459,10 +469,12 @@ class Tetris{
 //конец игры
 	gameOver()
 	{
+		this.renderer.destroyCurrentFigure();
 		this.stateMachine.setState("gameover");
 		this.keycon.enabled=false;
 		clearInterval(this.gameStepIntervalId);
 		this.renderer.animateGameover(this.score);
+		this.renderer.updateScore(this.score);
 		this.renderer.playSound("gameover");
 	}
 
@@ -473,6 +485,7 @@ class Tetris{
 		var state= this.stateMachine.getState();
 		if (state=="paused")
 		{
+			this.renderer.pauseCurrentFigure(state,this.fall_delta);
 			clearInterval(this.gameStepIntervalId);
 		}
 		else
@@ -480,6 +493,7 @@ class Tetris{
 			if(state=="playing")
 			{
 				this.gameStepIntervalId=setInterval(this.boundGameStep,this.gameStepTimer);
+				this.renderer.pauseCurrentFigure(state,this.fall_delta);
 			}
 		}
 	}
@@ -512,6 +526,7 @@ class Tetris{
 				currentThis.fall_delta=currentThis.fall_delta-25;
 				currentThis.score++;
 				currentThis.setScore(currentThis);
+				currentThis.renderer.updateScore(currentThis.score);
 				i++;
 			}
 		}

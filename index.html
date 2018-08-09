@@ -24,7 +24,7 @@
 			window.addEventListener('load', function(){
 			var tetris = new Tetris({
 				'GLASS_WIDTH': 360,	
-				'GLASS_HIGHT': 600,
+				'GLASS_HIGHT': 500,
 				'GLASS_PREVIEW_SECTION_WIDTH' : 100,
 				'GLASS_HIGHT_BRICKS': 25,
 				'GLASS_WIDTH_BRICKS': 10,
@@ -33,7 +33,7 @@
 				'renderer': "CanvasRenderer",
 				'pointContainer':"tetrisPoints",
 				'container': "tetrisGame",
-				'fallDelta': 700,
+				'fallDelta': 800,
 				'gameStepTimer': 40,
 				'controls':[	
 					{
@@ -63,12 +63,12 @@
 					},
 					{
 						"name":"left",
-						"coords":[Infinity,200,400,-400],
+						"coords":[Infinity,100,400,-400],
 						"type":"touch"
 					},
 					{
 						"name":"right",
-						"coords":[-200,-Infinity,400,-400],
+						"coords":[-100,-Infinity,400,-400],
 						"type":"touch"
 					},
 					{

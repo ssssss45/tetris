@@ -24,10 +24,16 @@ class PixiRenderer
 		this.emitterContainer.width = this.GLASS_WIDTH;
 		//массив блоков для отображения следующей фигуры
 		this.nextFigureBlocks=[];
-
+		//контейнер с текущей фигурой 
+		this.drawCurrentFigureContainer;
+		//id интервала опускания текущей фигуры
+		this.currentFigureIntervalId=[];
+		//скорость опускания контейнера текущей фигуры
+		this.currentFigureSpeed;
 		//Состояние звука
 		this.soundOn=true;
-		
+		//состояние ускорения(при нажаной вниз)
+		this.currentFigureAccelerationOn=false;
 		//переменная для очистки при геймовере
 		this.destroyLineNumber=0;
 
@@ -57,8 +63,23 @@ class PixiRenderer
 				"dropShadowAlpha": 0.2,
 			});
 		this.nextFiguretext.x=this.GLASS_WIDTH+6;
-		this.nextFiguretext.y=Math.floor(this.GLASS_HIGHT/3*2);
+		this.nextFiguretext.y=Math.floor(this.GLASS_HIGHT/10);
 		this.glass.stage.addChild(this.nextFiguretext);
+
+		//текст для счёта
+		this.scoreText=new PIXI.Text('Счёт: 0',
+			{
+				fontFamily : 'Courier New', 
+				fontSize: Math.floor(this.GLASS_PREVIEW_SECTION_WIDTH/6), 
+				fill : 0x000000, 
+				align : 'right',
+				"dropShadow": true,
+				"dropShadowDistance": 10,
+				"dropShadowAlpha": 0.2,
+			});
+		this.scoreText.x=this.GLASS_WIDTH+6;
+		this.scoreText.y=Math.floor(this.GLASS_HIGHT/5*2);
+		this.glass.stage.addChild(this.scoreText);
 
 		//разделитель
 		this.line = new PIXI.Graphics();
@@ -73,7 +94,7 @@ class PixiRenderer
 		this.previewRectangle.drawRect(0, 0, this.GLASS_PREVIEW_SECTION_WIDTH-10, this.GLASS_PREVIEW_SECTION_WIDTH-10);
 		this.previewRectangle.endFill();
 		this.previewRectangle.x = this.GLASS_WIDTH+6;
-		this.previewRectangle.y = Math.floor(this.GLASS_HIGHT/3*2)+40;
+		this.previewRectangle.y = Math.floor(this.GLASS_HIGHT/10)+40;
 		this.glass.stage.addChild(this.previewRectangle);
 
 		var boundSetup = this.setup.bind(this);
@@ -100,6 +121,8 @@ class PixiRenderer
 		this.boundPlayButtonSound);
 		document.addEventListener("tetrisGamePauseEvent",
 		this.boundPlayButtonSound);
+
+		this.boundAnimateCurrentFigure= this.animateCurrentFigure.bind(this);
 	}
 	//заполнение стакана спрайтами
 	setup()
@@ -120,6 +143,15 @@ class PixiRenderer
 		}
 		this.glass.stage.addChild(this.emitterContainer);
 	}
+/*
+██████╗ ██████╗  █████╗ ██╗    ██╗
+██╔══██╗██╔══██╗██╔══██╗██║    ██║
+██║  ██║██████╔╝███████║██║ █╗ ██║
+██║  ██║██╔══██╗██╔══██║██║███╗██║
+██████╔╝██║  ██║██║  ██║╚███╔███╔╝
+╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ 
+
+*/	
 	//отрисовка поля
 	draw(figureX,figureY,figure,glassStateArray,state,points)
 	{
@@ -149,7 +181,7 @@ class PixiRenderer
 					}	
 				}	
 			}
-			if (figure!= {})
+		/*	if (figure!= {})
 			{
 				for (var i = 0; i <figure.length; i++)
 				{
@@ -161,10 +193,118 @@ class PixiRenderer
 						};
 					};
 				}
-			}
+			}*/
+		}
+	}
+/*
+ ██████╗██╗   ██╗██████╗ ██████╗ ███████╗███╗   ██╗████████╗
+██╔════╝██║   ██║██╔══██╗██╔══██╗██╔════╝████╗  ██║╚══██╔══╝
+██║     ██║   ██║██████╔╝██████╔╝█████╗  ██╔██╗ ██║   ██║   
+██║     ██║   ██║██╔══██╗██╔══██╗██╔══╝  ██║╚██╗██║   ██║   
+╚██████╗╚██████╔╝██║  ██║██║  ██║███████╗██║ ╚████║   ██║   
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   
+                                                            
+*/
+	//отрисовка текущей фигуры
+	drawCurrentFigure(figure,x,y,speed)
+	{
+		this.drawCurrentFigureContainer = new PIXI.Container();
+		this.drawCurrentFigureContainer.height = figure.length;
+		this.drawCurrentFigureContainer.width = figure[0].length;
+		for (var i = 0; i <figure.length; i++)
+		{
+			for (var j = 0; j <  figure[0].length; j++)
+			{
+				if(figure[i][j]=="1")
+				{	
+					var brick=new PIXI.Sprite(PIXI.loader.resources["img/block_red.png"].texture);
+					brick.width=this.brickWidth;
+					brick.height=this.brickHight;
+					brick.y=i*this.brickHight;
+					brick.x=j*this.brickWidth;
+					this.drawCurrentFigureContainer.addChild(brick);
+				};
+			};
+		}
+		this.currentFigureSpeed=20;
+		this.drawCurrentFigureContainer.x=y*this.brickWidth;
+		this.drawCurrentFigureContainer.y=(x-1)*this.brickHight;
+		this.glass.stage.addChild(this.drawCurrentFigureContainer);
+		this.boundAnimateCurrentFigure()
+		this.currentFigureIntervalId=setInterval(this.boundAnimateCurrentFigure,speed/this.currentFigureSpeed);
+	}
+	//сдвиг фигуры в сторону
+	shiftCurrentFigure(delta)
+	{
+		this.drawCurrentFigureContainer.x=this.drawCurrentFigureContainer.x+delta*this.brickWidth;
+	}
+	//ускорение при нажатии кнопки вниз и замедление при отжатии
+	currentFigureAccelerate(toAccelerate)
+	{
+			this.currentFigureAccelerationOn=toAccelerate;
+	}
+
+	//поворот фигуры
+	rotateFigure(figure)
+	{
+		this.drawCurrentFigureContainer.removeChildren();
+
+		for (var i = 0; i <figure.length; i++)
+		{
+			for (var j = 0; j <  figure[0].length; j++)
+			{
+				if(figure[i][j]=="1")
+				{	
+					var brick=new PIXI.Sprite(PIXI.loader.resources["img/block_red.png"].texture);
+					brick.width=this.brickWidth;
+					brick.height=this.brickHight;
+					brick.y=i*this.brickHight;
+					brick.x=j*this.brickWidth;
+					this.drawCurrentFigureContainer.addChild(brick);
+				};
+			};
 		}
 	}
 
+	//удаление текущей фигуры (при падении)
+	destroyCurrentFigure()
+	{
+		clearInterval(this.currentFigureIntervalId);
+		this.drawCurrentFigureContainer.destroy();
+	}
+	//пауза
+	pauseCurrentFigure(state,speed)
+	{
+		if (state=="paused")
+		{
+			clearInterval(this.currentFigureIntervalId);
+		}
+		else if (state=="playing")
+		{
+			this.currentFigureIntervalId=setInterval(this.boundAnimateCurrentFigure,speed/this.currentFigureSpeed);
+		}
+	}
+	//анимация текущей фигуры
+	animateCurrentFigure()
+	{
+		if (this.currentFigureAccelerationOn)
+		{
+			this.drawCurrentFigureContainer.y=this.drawCurrentFigureContainer.y+(this.brickHight/this.currentFigureSpeed*2);
+		}
+		else
+		{
+			this.drawCurrentFigureContainer.y=this.drawCurrentFigureContainer.y+(this.brickHight/this.currentFigureSpeed);
+		}
+	}
+/*
+███╗   ██╗███████╗██╗  ██╗████████╗
+████╗  ██║██╔════╝╚██╗██╔╝╚══██╔══╝
+██╔██╗ ██║█████╗   ╚███╔╝    ██║   
+██║╚██╗██║██╔══╝   ██╔██╗    ██║   
+██║ ╚████║███████╗██╔╝ ██╗   ██║   
+╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   
+
+*/
 	//отрисовка следующей фигуры
 	drawNextFigure(figure)
 	{
@@ -196,6 +336,43 @@ class PixiRenderer
 			}
 		}
 	}
+/*
+███████╗ ██████╗ ██████╗ ██████╗ ███████╗
+██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝
+███████╗██║     ██║   ██║██████╔╝█████╗  
+╚════██║██║     ██║   ██║██╔══██╗██╔══╝  
+███████║╚██████╗╚██████╔╝██║  ██║███████╗
+╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝                                         
+*/
+	updateScore(score)
+	{
+		this.scoreText.text="Счёт: "+score;
+		var repeats = -5;
+		var boundAnimate = animate.bind(this);
+		setTimeout(boundAnimate,30);
+		function animate()
+		{
+			var delta = 1+((25-repeats*repeats)/100);
+			this.scoreText.scale.x = delta;
+			this.scoreText.scale.y = delta;
+			repeats++;
+			if (repeats!=6)
+			{
+				setTimeout(boundAnimate,30);
+			}
+		}
+	}
+
+/*
+
+██████╗ ███████╗███╗   ███╗ ██████╗ ██╗   ██╗███████╗
+██╔══██╗██╔════╝████╗ ████║██╔═══██╗██║   ██║██╔════╝
+██████╔╝█████╗  ██╔████╔██║██║   ██║██║   ██║█████╗  
+██╔══██╗██╔══╝  ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝  
+██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗
+╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
+                                                                                                             
+*/
 
 	//анимация убирания ряда
 	animateRemoval(line)
@@ -211,20 +388,32 @@ class PixiRenderer
 			this.glass.stage.addChild(brick);
 			listOfBricks.push(brick);	
 		}
-		var repeats=Math.floor((this.GLASS_HIGHT-line*this.brickHight)/10);
+		var repeats=1;
 		var boundAnimate = animate.bind(this);
-		var speedX = -3;
-		var speedY = -20;
+
+		for (var i=0; i<this.GLASS_WIDTH_BRICKS;i++)
+		{
+			listOfBricks[i].vy= randomIntFromInterval(-15,-25);
+			listOfBricks[i].vx= randomIntFromInterval(-15,15);
+		}
+
 		setTimeout(boundAnimate,30);
 		function animate()
 		{
-			for (var i=0; i<this.GLASS_WIDTH_BRICKS;i++)
+			for (var i=0; i<repeats;i++)
 			{
-				listOfBricks[i].y= listOfBricks[i].y+speedY;
-				listOfBricks[i].x= listOfBricks[i].x+speedX;
+				listOfBricks[i].y= listOfBricks[i].y+listOfBricks[i].vy;
+				listOfBricks[i].x= listOfBricks[i].x+listOfBricks[i].vx;
+				listOfBricks[i].rotation=listOfBricks[i].rotation+0.1;
+				listOfBricks[i].vy=listOfBricks[i].vy+3;
+				listOfBricks[i].scale.x=listOfBricks[i].scale.x+0.05;
+				listOfBricks[i].scale.y=listOfBricks[i].scale.y+0.05;
 			}	
-			speedY=speedY+3;
-			if (listOfBricks[0].y<this.GLASS_HIGHT)
+			if (repeats<this.GLASS_WIDTH_BRICKS)
+			{
+				repeats++;
+			}
+			if (listOfBricks[this.GLASS_WIDTH_BRICKS-1].y<this.GLASS_HIGHT)
 			{
 				setTimeout(boundAnimate,30);
 			}
@@ -237,6 +426,14 @@ class PixiRenderer
 			}
 		}
 	}
+/*
+██╗   ███████╗ █████╗ ██╗     ██╗     
+██║   ██╔════╝██╔══██╗██║     ██║     
+██║   █████╗  ███████║██║     ██║     
+██║   ██╔══╝  ██╔══██║██║     ██║     
+██║██╗██║     ██║  ██║███████╗███████╗
+╚═╝╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
+ */                                    
 
 	//анимация мгновенного падения
 	animateInstantFall(figureX,figureY,figure,delta)
@@ -276,6 +473,7 @@ class PixiRenderer
 		var speed=Math.floor((delta)*this.brickHight/repeats);
 
 		var boundAnimate = animate.bind(this);
+		var boundJump = jump.bind(this);
 		setTimeout(boundAnimate,8);
 		var temp=0;
 		function animate()
@@ -284,7 +482,29 @@ class PixiRenderer
 			{
 				listOfBricks[i].y= listOfBricks[i].y+speed;
 			}	
-			//прыжки блоков (пока не работает)
+			repeats--;
+			if (repeats!=0)
+			{
+				setTimeout(boundAnimate,8);
+			}
+			else if (repeats==0)
+			{
+				for (var i=0; i<listOfBricks.length;i++)
+				{
+					if(listOfEmits[i]==true)
+					{
+						this.boundEmitAtPoint(listOfBricks[i].x+Math.floor(this.brickWidth/2),listOfBricks[i].y+this.brickHight,"img/block_yellow.png",0.001);
+					}
+					listOfBricks[i].destroy();
+				}
+				//repeats=20;
+				//boundJump();
+			}
+		}
+		//прыжки блоков
+		function jump()
+		{
+			console.log(repeats);
 			for (var i = 0; i <this.GLASS_HIGHT_BRICKS; i++)
 			{
 				for (var j = 0; j <  this.GLASS_WIDTH_BRICKS; j++)
@@ -296,11 +516,11 @@ class PixiRenderer
 			repeats--;
 			if (repeats!=0)
 			{
-				setTimeout(boundAnimate,8);
+				setTimeout(boundJump,8);
 			}
 			if (repeats==0)
-			{
-				console.log(temp);
+			{	
+			//возвращение прыгнувших блоков в изначальное состояние
 				for (var i = 0; i <this.GLASS_HIGHT_BRICKS; i++)
 				{
 					for (var j = 0; j <  this.GLASS_WIDTH_BRICKS; j++)
@@ -308,18 +528,17 @@ class PixiRenderer
 						this.brickArray[i][j].y=this.brickArray[i][j].y-10;	
 					};
 				}
-				for (var i=0; i<listOfBricks.length;i++)
-				{
-
-					if(listOfEmits[i]==true){
-						this.boundEmitAtPoint(listOfBricks[i].x+Math.floor(this.brickWidth/2),listOfBricks[i].y+this.brickHight,"img/block_yellow.png",0.001);
-						}
-					listOfBricks[i].destroy();
-				}
-			}
+			}	
 		}
 	}
-
+/*
+ ██████╗  █████╗ ███╗   ███╗███████╗ ██████╗ ██╗   ██╗███████╗██████╗ 
+██╔════╝ ██╔══██╗████╗ ████║██╔════╝██╔═══██╗██║   ██║██╔════╝██╔══██╗
+██║  ███╗███████║██╔████╔██║█████╗  ██║   ██║██║   ██║█████╗  ██████╔╝
+██║   ██║██╔══██║██║╚██╔╝██║██╔══╝  ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
+ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
+*/
 	//анимация конца игры
 	animateGameover(score)
 	{	
@@ -350,7 +569,14 @@ class PixiRenderer
 			}
 		}
 	}
-
+/*
+███████╗███╗   ███╗██╗████████╗
+██╔════╝████╗ ████║██║╚══██╔══╝
+█████╗  ██╔████╔██║██║   ██║   
+██╔══╝  ██║╚██╔╝██║██║   ██║   
+███████╗██║ ╚═╝ ██║██║   ██║   
+╚══════╝╚═╝     ╚═╝╚═╝   ╚═╝   
+*/
 	emitAtPoint(x,y,pic,frequency)
 	{
 		var emit=new PIXI.particles.Emitter(
@@ -433,4 +659,8 @@ class PixiRenderer
 	{
 		this.playSound("button");
 	}
+}
+function randomIntFromInterval(min,max)
+{
+    return Math.floor(Math.random()*(max-min+1)+min);
 }
